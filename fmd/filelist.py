@@ -5,6 +5,8 @@ import pyexo
 pyexo.require('0.6')
 import exo
 
+from uxie.utils import idle
+
 class FileList(object):
     def __init__(self):
         self.model = gtk.ListStore(gtk.gdk.Pixbuf, str, str)
@@ -13,6 +15,7 @@ class FileList(object):
         self.widget = gtk.VBox()
 
         self.uri_entry = gtk.Entry()
+        self.uri_entry.connect('activate', self.on_uri_entry_activate)
         self.widget.pack_start(self.uri_entry, False, False)
 
         self.sw = gtk.ScrolledWindow()
@@ -29,7 +32,7 @@ class FileList(object):
         view.set_spacing(0)
         view.set_single_click(True)
         view.set_single_click_timeout(1000)
-
+        view.connect('item-activated', self.on_item_activated)
 
         icon_cell = gtk.CellRendererPixbuf()
         view.pack_start(icon_cell, False)
@@ -48,6 +51,9 @@ class FileList(object):
 
     def set_uri(self, uri):
         self.uri_entry.set_text(uri)
+        self.update(uri)
+
+    def update(self, uri):
         self.view.grab_focus()
         self.fill(uri)
 
@@ -75,8 +81,8 @@ class FileList(object):
     def fill(self, uri):
         self.view.set_model(self.emodel)
 
-        folder = gio.file_parse_name(uri)
-        enumerator = folder.enumerate_children('standard::*')
+        self.current_folder = gio.file_parse_name(uri)
+        enumerator = self.current_folder.enumerate_children('standard::*')
 
         infos = []
         while True:
@@ -94,7 +100,16 @@ class FileList(object):
 
         enumerator.close()
 
+        self.model.clear()
         for _, _, name, info in sorted(infos):
             self.model.append((self.get_pixbuf(info), name, None))
 
+        self.sw.props.hadjustment.value = 0
         self.view.set_model(self.model)
+
+    def on_uri_entry_activate(self, entry):
+        self.update(entry.get_text())
+
+    def on_item_activated(self, view, path):
+        row = self.model[path]
+        self.set_uri(self.current_folder.get_child_for_display_name(row[1]).get_path())
