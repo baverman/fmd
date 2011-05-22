@@ -145,5 +145,6 @@ class FmdIconView(gtk.DrawingArea):
 
     def do_realize(self):
         gtk.DrawingArea.do_realize(self)
+        self.window.set_background(self.style.base[gtk.STATE_NORMAL])
 
 gobject.type_register(FmdIconView)
