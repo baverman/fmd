@@ -30,6 +30,12 @@ class DrawItem(object):
         c.x, c.y, c.width, c.height = self.view.text_renderer.get_size(self.view)
         c.x += self.iarea.x + self.iarea.width
 
+        if self.tarea.height > self.iarea.height:
+            self.iarea.y += (self.tarea.height - self.iarea.height) / 2
+
+        if self.tarea.height < self.iarea.height:
+            self.tarea.y += (self.iarea.height - self.tarea.height) / 2
+
         u = self.iarea.union(self.tarea)
         self.height = u.height
         self.width = u.width
