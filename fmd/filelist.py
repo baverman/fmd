@@ -16,6 +16,40 @@ def init(activator):
     activator.bind_accel('navigate/forward', 'Navigate forward in history',
         '<alt>Right', FileList.navigate_forward)
 
+
+class History(object):
+    def __init__(self):
+        self.places = {}
+        self.hline = []
+        self.current = 0
+
+    def add(self, path):
+        self.hline = self.hline[:self.current] + [path]
+        self.current += 1
+
+    def update(self, path, cursor, scroll):
+        self.places[path] = (cursor, scroll)
+
+    def get(self, path):
+        return self.placec.get(path, (None, None))
+
+    def back(self):
+        if self.current > 0:
+            self.current -= 1
+            path = self.hline[self.current]
+            return (path,) + self.get(path)
+        else:
+            return None, None, None
+
+    def forward(self):
+        if self.current < len(self.hline):
+            path = self.hline[self.current]
+            self.current += 1
+            return (path,) + self.get(path)
+        else:
+            return None, None, None
+
+
 class FileList(object):
     def __init__(self):
         self.model = gtk.ListStore(gtk.gdk.Pixbuf, str, str)
@@ -57,14 +91,16 @@ class FileList(object):
         self.sw.add(view)
 
         self.icon_cache = {}
+        self.current_folder = None
+        self.history = History()
 
-    def set_uri(self, uri):
+    def set_uri(self, uri, cursor=None, scroll=None):
         self.uri_entry.set_text(uri)
-        self.update(uri)
+        self.update(uri, cursor, scroll)
 
-    def update(self, uri):
+    def update(self, uri, cursor=None, scroll=None):
         self.view.grab_focus()
-        self.fill(uri)
+        self.fill(uri, cursor=None, scroll=None)
 
     def get_pixbuf(self, info):
         content_type = info.get_attribute_as_string('standard::content-type')
@@ -87,8 +123,15 @@ class FileList(object):
         self.icon_cache[content_type] = pixbuf
         return pixbuf
 
-    def fill(self, uri):
+    def fill(self, uri, cursor=None, scroll=None):
         self.view.set_model(self.emodel)
+
+        if self.current_folder:
+            self.history.update(self.current_folder.get_path(), None,
+                self.sw.props.hadjustment.value)
+
+            print self.view.get_cursor()
+
 
         self.current_folder = gio.file_parse_name(uri)
         enumerator = self.current_folder.enumerate_children('standard::*')
@@ -124,7 +167,9 @@ class FileList(object):
         self.set_uri(self.current_folder.get_child_for_display_name(row[1]).get_path())
 
     def navigate_parent(self):
-        print 'parent'
+        parent = self.current_folder.get_parent()
+        if parent:
+            self.set_uri(parent.get_path())
 
     def navigate_back(self):
         print 'back'
