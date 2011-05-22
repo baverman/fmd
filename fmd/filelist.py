@@ -1,9 +1,7 @@
 import gtk
 import gio
 
-import pyexo
-pyexo.require('0.6')
-import exo
+from .iconview import FmdIconView
 
 def init(activator):
     activator.bind_accel('navigate/parent', 'Navigate to parent directory',
@@ -53,7 +51,6 @@ class History(object):
 class FileList(object):
     def __init__(self):
         self.model = gtk.ListStore(gtk.gdk.Pixbuf, str, str)
-        self.emodel = gtk.ListStore(gtk.gdk.Pixbuf, str, str)
 
         self.widget = gtk.VBox()
 
@@ -62,31 +59,30 @@ class FileList(object):
         self.widget.pack_start(self.uri_entry, False, False)
 
         self.sw = gtk.ScrolledWindow()
-        self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER)
+        self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 
         self.widget.pack_start(self.sw)
 
-        self.view = view = exo.IconView()
-        view.set_orientation(gtk.ORIENTATION_HORIZONTAL)
-        view.props.layout_mode = 1
-        view.set_selection_mode(gtk.SELECTION_MULTIPLE)
-        view.set_margin(3)
-        view.set_row_spacing(0)
-        view.set_spacing(0)
-        view.set_single_click(True)
-        view.set_single_click_timeout(1000)
-        view.connect('item-activated', self.on_item_activated)
+        self.view = view = FmdIconView()
+        #view.set_orientation(gtk.ORIENTATION_HORIZONTAL)
+        #view.props.layout_mode = 1
+        #view.set_selection_mode(gtk.SELECTION_MULTIPLE)
+        #view.set_margin(3)
+        #view.set_row_spacing(0)
+        #view.set_spacing(0)
+        #view.set_single_click(True)
+        #view.set_single_click_timeout(1000)
+        #view.connect('item-activated', self.on_item_activated)
 
         icon_cell = gtk.CellRendererPixbuf()
-        view.pack_start(icon_cell, False)
-        view.set_attributes(icon_cell, pixbuf=0)
+        view.icon_renderer = icon_cell
+        view.set_icon_attributes(pixbuf=0)
         icon_cell.props.follow_state = True
         icon_cell.props.xpad = 1
 
-        text_cell = exo.CellRendererEllipsizedText()
-        view.pack_start(text_cell, True)
-        view.set_attributes(text_cell, text=1)
-        text_cell.props.follow_state = True
+        text_cell = gtk.CellRendererText()
+        view.text_renderer = text_cell
+        view.set_text_attributes(text=1)
 
         self.sw.add(view)
 
@@ -124,7 +120,7 @@ class FileList(object):
         return pixbuf
 
     def fill(self, uri, cursor=None, scroll=None):
-        self.view.set_model(self.emodel)
+        self.view.set_model(None)
 
         if self.current_folder:
             self.history.update(self.current_folder.get_path(), None,
@@ -156,7 +152,6 @@ class FileList(object):
         for _, _, name, info in sorted(infos):
             self.model.append((self.get_pixbuf(info), name, None))
 
-        self.sw.props.hadjustment.value = 0
         self.view.set_model(self.model)
 
     def on_uri_entry_activate(self, entry):
