@@ -5,7 +5,16 @@ import pyexo
 pyexo.require('0.6')
 import exo
 
-from uxie.utils import idle
+def init(activator):
+    activator.bind_accel('navigate/parent', 'Navigate to parent directory',
+        '<alt>Up', FileList.navigate_parent)
+
+    activator.bind_accel('navigate/back', 'Navigate back in history',
+        '<alt>Left', FileList.navigate_back)
+    activator.map('navigate/back', 'BackSpace')
+
+    activator.bind_accel('navigate/forward', 'Navigate forward in history',
+        '<alt>Right', FileList.navigate_forward)
 
 class FileList(object):
     def __init__(self):
@@ -113,3 +122,12 @@ class FileList(object):
     def on_item_activated(self, view, path):
         row = self.model[path]
         self.set_uri(self.current_folder.get_child_for_display_name(row[1]).get_path())
+
+    def navigate_parent(self):
+        print 'parent'
+
+    def navigate_back(self):
+        print 'back'
+
+    def navigate_forward(self):
+        print 'forward'

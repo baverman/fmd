@@ -12,6 +12,6 @@ def run():
     from uxie.utils import idle
 
     application = App()
-    idle(application.start, uri)
+    idle(application.open, uri)
 
     gtk.main()
