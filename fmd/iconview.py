@@ -54,9 +54,6 @@ class FmdIconView(gtk.DrawingArea):
         self.text_renderer = None
         self.cell_attrs = {}
         self.item_cache = {}
-        self.margin = 3
-        self.hspacing = 10
-        self.vspacing = 2
         self.selected = {}
         self.cursor = None
 
@@ -165,20 +162,24 @@ class FmdIconView(gtk.DrawingArea):
         if not self.model:
             return
 
-        x = y = self.margin
-        maxy = self.allocation.height - self.margin
+        hs = self.style_get_property('hspacing')
+        vs = self.style_get_property('vspacing')
+        margin = self.style_get_property('margin')
+
+        x = y = margin
+        maxy = self.allocation.height - margin
         mx = 0
         for r in self.model:
             self._prepare_cell(self.icon_renderer, r)
             self._prepare_cell(self.text_renderer, r)
             item = self.item_cache[r.path] = DrawItem(self, self.icon_renderer, self.text_renderer)
 
-            ny = y + item.height + self.vspacing
+            ny = y + item.height + vs
             if ny > maxy:
-                x += mx + self.hspacing
+                x += mx + hs
                 mx = 0
-                y = self.margin
-                ny = y + item.height + self.vspacing
+                y = margin
+                ny = y + item.height + vs
 
             if item.width > mx:
                 mx = item.width
@@ -221,3 +222,15 @@ class FmdIconView(gtk.DrawingArea):
         return False
 
 gobject.type_register(FmdIconView)
+
+gtk.widget_class_install_style_property(FmdIconView, ('hspacing', gobject.TYPE_INT,
+    'Horizontal spacing', 'Horizontal spacing beetwen items', gobject.G_MININT, gobject.G_MAXINT,
+    10, gobject.PARAM_READWRITE))
+
+gtk.widget_class_install_style_property(FmdIconView, ('vspacing', gobject.TYPE_INT,
+    'Vertical spacing', 'Vertical spacing beetwen items', gobject.G_MININT, gobject.G_MAXINT,
+    2, gobject.PARAM_READWRITE))
+
+gtk.widget_class_install_style_property(FmdIconView, ('margin', gobject.TYPE_INT,
+    'Margin', 'Margin to view boundaries', gobject.G_MININT, gobject.G_MAXINT,
+    3, gobject.PARAM_READWRITE))
