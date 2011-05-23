@@ -67,15 +67,9 @@ class FileList(object):
         self.widget.pack_start(self.sw)
 
         self.view = view = FmdIconView()
-        #view.set_orientation(gtk.ORIENTATION_HORIZONTAL)
-        #view.props.layout_mode = 1
-        #view.set_selection_mode(gtk.SELECTION_MULTIPLE)
-        #view.set_margin(3)
-        #view.set_row_spacing(0)
-        #view.set_spacing(0)
         #view.set_single_click(True)
         #view.set_single_click_timeout(1000)
-        #view.connect('item-activated', self.on_item_activated)
+        view.connect('item-activated', self.on_item_activated)
 
         icon_cell = gtk.CellRendererPixbuf()
         view.icon_renderer = icon_cell
@@ -174,7 +168,9 @@ class FileList(object):
     def navigate_parent(self):
         parent = self.current_folder.get_parent()
         if parent:
-            self.set_uri(parent.get_path())
+            uri = parent.get_path()
+            cursor, scroll = self.history.get(uri)
+            self.set_uri(uri, True, cursor, scroll)
 
     def navigate_back(self):
         path, cursor, scroll = self.history.back()

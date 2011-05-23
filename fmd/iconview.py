@@ -36,6 +36,10 @@ class FmdIconView(gtk.DrawingArea):
             gobject.SIGNAL_RUN_LAST | gobject.SIGNAL_ACTION,
             gobject.TYPE_NONE, (gtk.Adjustment, gtk.Adjustment)
         ),
+        "item-activated": (
+            gobject.SIGNAL_RUN_LAST | gobject.SIGNAL_ACTION,
+            gobject.TYPE_NONE, (object,)
+        ),
     }
 
     def __init__(self):
@@ -199,9 +203,16 @@ class FmdIconView(gtk.DrawingArea):
                 self.set_cursor((self.cursor[0] + 1,))
 
             return True
+
         if event.keyval == keysyms.Up:
             if self.cursor and self.cursor[0] > 0:
                 self.set_cursor((self.cursor[0] - 1,))
+
+            return True
+
+        if event.keyval == keysyms.Return:
+            if self.cursor:
+                self.emit('item-activated', self.cursor)
 
             return True
 
