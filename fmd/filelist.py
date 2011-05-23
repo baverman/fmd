@@ -32,12 +32,12 @@ class History(object):
         self.places[path] = (cursor, scroll)
 
     def get(self, path):
-        return self.placec.get(path, (None, None))
+        return self.places.get(path, (None, None))
 
     def back(self):
-        if self.current > 0:
+        if self.current > 1:
             self.current -= 1
-            path = self.hline[self.current]
+            path = self.hline[self.current-1]
             return (path,) + self.get(path)
         else:
             return None, None, None
@@ -93,13 +93,13 @@ class FileList(object):
         self.current_folder = None
         self.history = History()
 
-    def set_uri(self, uri, cursor=None, scroll=None):
+    def set_uri(self, uri, add_to_history=True, cursor=None, scroll=None):
         self.uri_entry.set_text(uri)
-        self.update(uri, cursor, scroll)
+        self.update(uri, add_to_history, cursor, scroll)
 
-    def update(self, uri, cursor=None, scroll=None):
+    def update(self, uri, add_to_history=True, cursor=None, scroll=None):
         self.view.grab_focus()
-        self.fill(uri, cursor=None, scroll=None)
+        self.fill(uri, add_to_history, cursor, scroll)
 
     def get_pixbuf(self, info):
         content_type = info.get_attribute_as_string('standard::content-type')
@@ -122,14 +122,12 @@ class FileList(object):
         self.icon_cache[content_type] = pixbuf
         return pixbuf
 
-    def fill(self, uri, cursor=None, scroll=None):
+    def fill(self, uri, add_to_history=True, cursor=None, scroll=None):
         self.view.set_model(None)
 
         if self.current_folder:
-            self.history.update(self.current_folder.get_path(), None,
+            self.history.update(self.current_folder.get_path(), self.view.get_cursor(),
                 self.sw.props.hadjustment.value)
-
-            print self.view.get_cursor()
 
 
         self.current_folder = gio.file_parse_name(uri)
@@ -155,9 +153,16 @@ class FileList(object):
         for _, _, name, info in sorted(infos):
             self.model.append((self.get_pixbuf(info), name, None))
 
-        self.view.set_cursor((0,))
+        if cursor:
+            self.view.set_cursor(cursor)
+        else:
+            self.view.set_cursor((0,))
 
         self.view.set_model(self.model)
+        self.view.queue_draw()
+
+        if add_to_history:
+            self.history.add(self.current_folder.get_path())
 
     def on_uri_entry_activate(self, entry):
         self.update(entry.get_text())
@@ -172,10 +177,14 @@ class FileList(object):
             self.set_uri(parent.get_path())
 
     def navigate_back(self):
-        print 'back'
+        path, cursor, scroll = self.history.back()
+        if path:
+            self.set_uri(path, False, cursor, scroll)
 
     def navigate_forward(self):
-        print 'forward'
+        path, cursor, scroll = self.history.forward()
+        if path:
+            self.set_uri(path, False, cursor, scroll)
 
     def activate_location(self):
         self.uri_entry.grab_focus()
