@@ -14,6 +14,9 @@ def init(activator):
     activator.bind_accel('filelist/navigate/forward', 'Navigate forward in history',
         '<alt>Right', FileList.navigate_forward)
 
+    activator.bind_accel('filelist/view/hidden', 'Toggle hidden files',
+        '<ctrl>h', FileList.show_hidden)
+
     activator.bind_accel('any/activate/location', 'Activate location bar',
         '<ctrl>l', FileList.activate_location)
 
@@ -86,6 +89,7 @@ class FileList(object):
         self.icon_cache = {}
         self.current_folder = None
         self.history = History()
+        self.show_hidden = False
 
     def set_uri(self, uri, add_to_history=True, cursor=None, scroll=None):
         self.uri_entry.set_text(uri)
@@ -133,7 +137,7 @@ class FileList(object):
             if not fi:
                 break
 
-            if fi.get_attribute_boolean('standard::is-hidden'):
+            if not self.show_hidden and fi.get_attribute_boolean('standard::is-hidden'):
                 continue
 
             content_type = fi.get_attribute_as_string('standard::content-type')
@@ -184,3 +188,7 @@ class FileList(object):
 
     def activate_location(self):
         self.uri_entry.grab_focus()
+
+    def show_hidden(self):
+        self.show_hidden = not self.show_hidden
+        self.fill(self.current_folder.get_path(), False)

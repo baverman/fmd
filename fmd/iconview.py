@@ -55,6 +55,8 @@ class FmdIconView(gtk.DrawingArea):
         self.cell_attrs = {}
         self.item_cache = {}
         self.margin = 3
+        self.hspacing = 10
+        self.vspacing = 2
         self.selected = {}
         self.cursor = None
 
@@ -171,12 +173,12 @@ class FmdIconView(gtk.DrawingArea):
             self._prepare_cell(self.text_renderer, r)
             item = self.item_cache[r.path] = DrawItem(self, self.icon_renderer, self.text_renderer)
 
-            ny = y + item.height
+            ny = y + item.height + self.vspacing
             if ny > maxy:
-                x += mx
+                x += mx + self.hspacing
                 mx = 0
                 y = self.margin
-                ny = y + item.height
+                ny = y + item.height + self.vspacing
 
             if item.width > mx:
                 mx = item.width
