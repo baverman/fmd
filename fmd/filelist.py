@@ -4,15 +4,18 @@ import gio
 from .iconview import FmdIconView
 
 def init(activator):
-    activator.bind_accel('navigate/parent', 'Navigate to parent directory',
+    activator.bind_accel('filelist/navigate/parent', 'Navigate to parent directory',
         '<alt>Up', FileList.navigate_parent)
 
-    activator.bind_accel('navigate/back', 'Navigate back in history',
+    activator.bind_accel('filelist/navigate/back', 'Navigate back in history',
         '<alt>Left', FileList.navigate_back)
-    activator.map('navigate/back', 'BackSpace')
+    activator.map('filelist/navigate/back', 'BackSpace')
 
-    activator.bind_accel('navigate/forward', 'Navigate forward in history',
+    activator.bind_accel('filelist/navigate/forward', 'Navigate forward in history',
         '<alt>Right', FileList.navigate_forward)
+
+    activator.bind_accel('any/activate/location', 'Activate location bar',
+        '<ctrl>l', FileList.activate_location)
 
 
 class History(object):
@@ -173,3 +176,6 @@ class FileList(object):
 
     def navigate_forward(self):
         print 'forward'
+
+    def activate_location(self):
+        self.uri_entry.grab_focus()

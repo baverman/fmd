@@ -76,6 +76,9 @@ class FmdIconView(gtk.DrawingArea):
 
             self._queue_path_draw(self.cursor)
 
+    def get_cursor(self):
+        return self.cursor
+
     def _draw_item(self, item, row, earea):
         flags = 0
         if row.path in self.selected:

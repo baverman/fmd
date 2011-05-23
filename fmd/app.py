@@ -30,4 +30,7 @@ class App(object):
         gtk.main_quit()
 
     def get_context(self, window):
-        return self.filelist
+        if self.filelist.view.has_focus():
+            return 'filelist', self.filelist
+
+        return 'any', None
