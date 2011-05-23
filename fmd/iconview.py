@@ -2,7 +2,7 @@ import gtk
 import gobject
 
 from gtk.gdk import Rectangle
-
+from gtk import keysyms
 
 class DrawItem(object):
     __slots__ = ['ix', 'iy', 'iwidth', 'iheight',
@@ -31,6 +31,7 @@ class FmdIconView(gtk.DrawingArea):
         "realize": "override",
         "size-request": "override",
         "size-allocate": "override",
+        "key-press-event": "override",
         "set-scroll-adjustments": (
             gobject.SIGNAL_RUN_LAST | gobject.SIGNAL_ACTION,
             gobject.TYPE_NONE, (gtk.Adjustment, gtk.Adjustment)
@@ -39,7 +40,11 @@ class FmdIconView(gtk.DrawingArea):
 
     def __init__(self):
         gtk.DrawingArea.__init__(self)
+
+        self.set_can_focus(True)
+        self.add_events(gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.KEY_PRESS_MASK)
         self.set_set_scroll_adjustments_signal("set-scroll-adjustments")
+
         self.model = None
         self.icon_renderer = None
         self.text_renderer = None
@@ -49,6 +54,8 @@ class FmdIconView(gtk.DrawingArea):
         self.selected = {}
         self.cursor = None
 
+        self.item_draw_queue = []
+
     def set_attributes(self, cell, **kwargs):
         self.cell_attrs[cell] = kwargs
 
@@ -57,41 +64,57 @@ class FmdIconView(gtk.DrawingArea):
             cell.set_property(k, row[v])
 
     def set_cursor(self, path, select=True):
+        prev = self.cursor
         self.cursor = path
         if select:
             self.selected.clear()
             self.selected[path] = True
+
+        if self.model:
+            if prev:
+                self._queue_path_draw(prev)
+
+            self._queue_path_draw(self.cursor)
+
+    def _draw_item(self, item, row, earea):
+        flags = 0
+        if row.path in self.selected:
+            flags = gtk.CELL_RENDERER_SELECTED
+            self.style.paint_flat_box(self.window, gtk.STATE_SELECTED, gtk.SHADOW_NONE,
+                earea, self, 'fmd icon text', item.x + item.tx, item.y + item.ty,
+                item.twidth, item.theight)
+
+        self._prepare_cell(self.icon_renderer, row)
+        area = Rectangle(item.x + item.ix, item.y + item.iy, item.iwidth, item.iheight)
+        self.icon_renderer.render(self.window, self, area, area, earea, flags)
+
+        self._prepare_cell(self.text_renderer, row)
+        area = Rectangle(item.x + item.tx, item.y + item.ty, item.twidth, item.theight)
+        self.text_renderer.render(self.window, self, area, area, earea, flags)
+
+        if row.path == self.cursor:
+            self.style.paint_focus(self.window, gtk.STATE_NORMAL,
+                earea, self, 'fmd icon text focus', item.x + item.tx, item.y + item.ty,
+                item.twidth, item.theight)
 
     def do_expose_event(self, event):
         if not self.model:
             return True
 
         earea = event.area
-        for r in self.model:
-            item = self.item_cache[r.path]
 
-            if item.x > earea:
-                break
+        if self.item_draw_queue:
+            while self.item_draw_queue:
+                path, item = self.item_draw_queue.pop(0)
+                self._draw_item(item, self.model[path], earea)
+        else:
+            for r in self.model:
+                item = self.item_cache[r.path]
 
-            flags = 0
-            if r.path in self.selected:
-                flags = gtk.CELL_RENDERER_SELECTED
-                self.style.paint_flat_box(self.window, gtk.STATE_SELECTED, gtk.SHADOW_NONE,
-                    earea, self, 'fmd icon text', item.x + item.tx, item.y + item.ty,
-                    item.twidth, item.theight)
+                if item.x > earea:
+                    break
 
-            self._prepare_cell(self.icon_renderer, r)
-            area = Rectangle(item.x + item.ix, item.y + item.iy, item.iwidth, item.iheight)
-            self.icon_renderer.render(self.window, self, area, area, earea, flags)
-
-            self._prepare_cell(self.text_renderer, r)
-            area = Rectangle(item.x + item.tx, item.y + item.ty, item.twidth, item.theight)
-            self.text_renderer.render(self.window, self, area, area, earea, flags)
-
-            if r.path == self.cursor:
-                self.style.paint_focus(self.window, gtk.STATE_NORMAL,
-                    earea, self, 'fmd icon text focus', item.x + item.tx, item.y + item.ty,
-                    item.twidth, item.theight)
+                self._draw_item(item, r, earea)
 
         return True
 
@@ -159,5 +182,26 @@ class FmdIconView(gtk.DrawingArea):
     def do_realize(self):
         gtk.DrawingArea.do_realize(self)
         self.window.set_background(self.style.base[gtk.STATE_NORMAL])
+
+    def _queue_path_draw(self, path):
+        item = self.item_cache[path]
+        self.item_draw_queue.append((path, item))
+        self.window.invalidate_rect(Rectangle(item.x, item.y, item.width, item.height), False)
+
+    def do_key_press_event(self, event):
+        if event.keyval == keysyms.Down:
+            if not self.cursor:
+                self.set_cursor((0,))
+            elif self.cursor[0] + 1 < len(self.model):
+                self.set_cursor((self.cursor[0] + 1,))
+
+            return True
+        if event.keyval == keysyms.Up:
+            if self.cursor and self.cursor[0] > 0:
+                self.set_cursor((self.cursor[0] - 1,))
+
+            return True
+
+        return False
 
 gobject.type_register(FmdIconView)
