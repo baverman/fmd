@@ -5,50 +5,25 @@ from gtk.gdk import Rectangle
 
 
 class DrawItem(object):
-    def __init__(self, view, row):
-        self.view = view
-        self.iarea = Rectangle()
-        self.tarea = Rectangle()
-        self.width = 0
-        self.height = 0
+    __slots__ = ['ix', 'iy', 'iwidth', 'iheight',
+        'tx', 'ty', 'twidth', 'theight', 'width', 'height', 'x', 'y']
 
-        self.refresh(row)
+    def __init__(self, view, icell, tcell):
+        self.ix, self.iy, self.iwidth, self.iheight = icell.get_size(view)
+        self.tx, self.ty, self.twidth, self.theight = tcell.get_size(view)
 
-    def set_attrs(self, row):
-        for k, v in self.view.icon_renderer_attrs.items():
-            self.view.icon_renderer.set_property(k, row[v])
+        self.tx += self.ix + self.iwidth
 
-        for k, v in self.view.text_renderer_attrs.items():
-            self.view.text_renderer.set_property(k, row[v])
+        if self.theight > self.iheight:
+            self.height = self.theight
+            self.iy += (self.theight - self.iheight) / 2
 
-    def refresh(self, row):
-        self.set_attrs(row)
-        c = self.iarea
-        c.x, c.y, c.width, c.height = self.view.icon_renderer.get_size(self.view)
+        if self.theight < self.iheight:
+            self.height = self.iheight
+            self.ty += (self.iheight - self.theight) / 2
 
-        c = self.tarea
-        c.x, c.y, c.width, c.height = self.view.text_renderer.get_size(self.view)
-        c.x += self.iarea.x + self.iarea.width
+        self.width = self.tx + self.twidth
 
-        if self.tarea.height > self.iarea.height:
-            self.iarea.y += (self.tarea.height - self.iarea.height) / 2
-
-        if self.tarea.height < self.iarea.height:
-            self.tarea.y += (self.iarea.height - self.tarea.height) / 2
-
-        u = self.iarea.union(self.tarea)
-        self.height = u.height
-        self.width = u.width
-
-    def render(self, row, x, y, expose, flags):
-        self.set_attrs(row)
-        area = Rectangle(self.iarea.x + x, self.iarea.y + y, self.iarea.width, self.iarea.height)
-        self.view.icon_renderer.render(self.view.window,
-            self.view, area, area, expose, flags)
-
-        area = Rectangle(self.tarea.x + x, self.tarea.y + y, self.tarea.width, self.tarea.height)
-        self.view.text_renderer.render(self.view.window,
-            self.view, area, area, expose, flags)
 
 class FmdIconView(gtk.DrawingArea):
     __gsignals__ = {
@@ -67,45 +42,36 @@ class FmdIconView(gtk.DrawingArea):
         self.set_set_scroll_adjustments_signal("set-scroll-adjustments")
         self.model = None
         self.icon_renderer = None
-        self.icon_renderer_attrs = {}
         self.text_renderer = None
-        self.text_renderer_attrs = {}
+        self.cell_attrs = {}
         self.item_cache = {}
+        self.margin = 3
 
-    def set_icon_attributes(self, **kwargs):
-        self.icon_renderer_attrs = kwargs
+    def set_attributes(self, cell, **kwargs):
+        self.cell_attrs[cell] = kwargs
 
-    def set_text_attributes(self, **kwargs):
-        self.text_renderer_attrs = kwargs
+    def _prepare_cell(self, cell, row):
+        for k, v in self.cell_attrs.get(cell, {}).items():
+            cell.set_property(k, row[v])
 
     def do_expose_event(self, event):
         if not self.model:
             return True
 
-        x = y = 0
-        expose_area = event.area
-        maxy = expose_area.y + expose_area.height
-        maxx = expose_area.x + expose_area.width
-        mx = 0
+        earea = event.area
         for r in self.model:
             item = self.item_cache[r.path]
 
-            ny = y + item.height
-            if ny > maxy:
-                x += mx
-                mx = 0
-                y = 0
-                ny = y + item.height
-
-            if x > maxx:
+            if item.x > earea:
                 break
 
-            if item.width > mx:
-                mx = item.width
+            self._prepare_cell(self.icon_renderer, r)
+            area = Rectangle(item.x + item.ix, item.y + item.iy, item.iwidth, item.iheight)
+            self.icon_renderer.render(self.window, self, area, area, earea, 0)
 
-            item.render(r, x, y, expose_area, 0)
-            y = ny
-
+            self._prepare_cell(self.text_renderer, r)
+            area = Rectangle(item.x + item.tx, item.y + item.ty, item.twidth, item.theight)
+            self.text_renderer.render(self.window, self, area, area, earea, 0)
 
         return True
 
@@ -119,7 +85,7 @@ class FmdIconView(gtk.DrawingArea):
         if self.flags() & gtk.REALIZED:
             self.window.move_resize(*allocation)
             self.update_item_cache()
-            self.queue_draw()
+            print 'alloc', self.allocation
 
     def do_set_scroll_adjustments(self, h_adjustment, v_adjustment):
         if h_adjustment:
@@ -145,9 +111,31 @@ class FmdIconView(gtk.DrawingArea):
     def update_item_cache(self):
         self.item_cache.clear()
 
-        if self.model:
-            for r in self.model:
-                self.item_cache[r.path] = DrawItem(self, r)
+        if not self.model:
+            return
+
+        x = y = self.margin
+        maxy = self.allocation.height - self.margin
+        mx = 0
+        for r in self.model:
+            self._prepare_cell(self.icon_renderer, r)
+            self._prepare_cell(self.text_renderer, r)
+            item = self.item_cache[r.path] = DrawItem(self, self.icon_renderer, self.text_renderer)
+
+            ny = y + item.height
+            if ny > maxy:
+                x += mx
+                mx = 0
+                y = self.margin
+                ny = y + item.height
+
+            if item.width > mx:
+                mx = item.width
+
+            item.x = x
+            item.y = y
+
+            y = ny
 
     def do_realize(self):
         gtk.DrawingArea.do_realize(self)

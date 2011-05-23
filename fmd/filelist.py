@@ -76,13 +76,13 @@ class FileList(object):
 
         icon_cell = gtk.CellRendererPixbuf()
         view.icon_renderer = icon_cell
-        view.set_icon_attributes(pixbuf=0)
+        view.set_attributes(icon_cell, pixbuf=0)
         icon_cell.props.follow_state = True
         icon_cell.props.xpad = 1
 
         text_cell = gtk.CellRendererText()
         view.text_renderer = text_cell
-        view.set_text_attributes(text=1)
+        view.set_attributes(text_cell, text=1)
 
         self.sw.add(view)
 
