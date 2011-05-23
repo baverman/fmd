@@ -152,6 +152,8 @@ class FileList(object):
         for _, _, name, info in sorted(infos):
             self.model.append((self.get_pixbuf(info), name, None))
 
+        self.view.set_cursor((0,))
+
         self.view.set_model(self.model)
 
     def on_uri_entry_activate(self, entry):

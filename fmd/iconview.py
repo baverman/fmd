@@ -46,6 +46,8 @@ class FmdIconView(gtk.DrawingArea):
         self.cell_attrs = {}
         self.item_cache = {}
         self.margin = 3
+        self.selected = {}
+        self.cursor = None
 
     def set_attributes(self, cell, **kwargs):
         self.cell_attrs[cell] = kwargs
@@ -53,6 +55,12 @@ class FmdIconView(gtk.DrawingArea):
     def _prepare_cell(self, cell, row):
         for k, v in self.cell_attrs.get(cell, {}).items():
             cell.set_property(k, row[v])
+
+    def set_cursor(self, path, select=True):
+        self.cursor = path
+        if select:
+            self.selected.clear()
+            self.selected[path] = True
 
     def do_expose_event(self, event):
         if not self.model:
@@ -65,13 +73,25 @@ class FmdIconView(gtk.DrawingArea):
             if item.x > earea:
                 break
 
+            flags = 0
+            if r.path in self.selected:
+                flags = gtk.CELL_RENDERER_SELECTED
+                self.style.paint_flat_box(self.window, gtk.STATE_SELECTED, gtk.SHADOW_NONE,
+                    earea, self, 'fmd icon text', item.x + item.tx, item.y + item.ty,
+                    item.twidth, item.theight)
+
             self._prepare_cell(self.icon_renderer, r)
             area = Rectangle(item.x + item.ix, item.y + item.iy, item.iwidth, item.iheight)
-            self.icon_renderer.render(self.window, self, area, area, earea, 0)
+            self.icon_renderer.render(self.window, self, area, area, earea, flags)
 
             self._prepare_cell(self.text_renderer, r)
             area = Rectangle(item.x + item.tx, item.y + item.ty, item.twidth, item.theight)
-            self.text_renderer.render(self.window, self, area, area, earea, 0)
+            self.text_renderer.render(self.window, self, area, area, earea, flags)
+
+            if r.path == self.cursor:
+                self.style.paint_focus(self.window, gtk.STATE_NORMAL,
+                    earea, self, 'fmd icon text focus', item.x + item.tx, item.y + item.ty,
+                    item.twidth, item.theight)
 
         return True
 
@@ -85,7 +105,6 @@ class FmdIconView(gtk.DrawingArea):
         if self.flags() & gtk.REALIZED:
             self.window.move_resize(*allocation)
             self.update_item_cache()
-            print 'alloc', self.allocation
 
     def do_set_scroll_adjustments(self, h_adjustment, v_adjustment):
         if h_adjustment:
