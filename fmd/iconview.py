@@ -2,7 +2,7 @@ from bisect import bisect
 import gtk
 import gobject
 
-from gtk.gdk import Rectangle, CONTROL_MASK
+from gtk.gdk import Rectangle, CONTROL_MASK, SHIFT_MASK
 from gtk import keysyms
 
 class DrawItem(object):
@@ -70,12 +70,13 @@ class FmdIconView(gtk.DrawingArea):
             cell.set_property(k, row[v])
 
     def unselect_all(self):
-        for path in self.selected:
-            self._queue_path_draw(path)
+        if self.model:
+            for path in self.selected:
+                self._queue_path_draw(path)
 
         self.selected.clear()
 
-    def set_cursor(self, path, select=True):
+    def set_cursor(self, path, select=True, select_between=False):
         prev = self.cursor
         self.cursor = path
         if select:
@@ -85,6 +86,21 @@ class FmdIconView(gtk.DrawingArea):
         if self.model:
             if prev:
                 self._queue_path_draw(prev)
+                if select_between:
+                    cursor = self.cursor
+                    remove_selection = cursor in self.selected and prev in self.selected
+                    if prev > self.cursor:
+                         prev, cursor = cursor, prev
+
+                    for path in self._foreach_path(prev, cursor):
+                        if remove_selection and path != self.cursor:
+                            try:
+                                del self.selected[path]
+                            except KeyError: pass
+                        else:
+                            self.selected[path] = True
+
+                        self._queue_path_draw(path)
 
             self._queue_path_draw(self.cursor)
 
@@ -213,8 +229,9 @@ class FmdIconView(gtk.DrawingArea):
         self.window.invalidate_rect(Rectangle(item.x - xoffset, item.y,
             item.width, item.height), False)
 
-    def _foreach_path(self, fpath):
-        return ((r,) for r in xrange(fpath[0], len(self.model)))
+    def _foreach_path(self, fpath, tpath=None):
+        tpath = tpath or (len(self.model)-1,)
+        return ((r,) for r in xrange(fpath[0], tpath[0]+1))
 
     def _find_nearest_path_on_same_line(self, path, direction):
         item = self.item_cache[path]
@@ -244,18 +261,19 @@ class FmdIconView(gtk.DrawingArea):
         return path
 
     def do_key_press_event(self, event):
-        do_select = event.state != CONTROL_MASK
+        do_select_between = event.state == SHIFT_MASK
+        do_select = not do_select_between and event.state != CONTROL_MASK
         if event.keyval == keysyms.Down:
             if not self.cursor:
                 self.set_cursor((0,))
             elif self.cursor[0] + 1 < len(self.model):
-                self.set_cursor((self.cursor[0] + 1,), do_select)
+                self.set_cursor((self.cursor[0] + 1,), do_select, do_select_between)
 
             return True
 
         if event.keyval == keysyms.Up:
             if self.cursor and self.cursor[0] > 0:
-                self.set_cursor((self.cursor[0] - 1,), do_select)
+                self.set_cursor((self.cursor[0] - 1,), do_select, do_select_between)
 
             return True
 
@@ -265,7 +283,7 @@ class FmdIconView(gtk.DrawingArea):
             else:
                 cursor = self._find_nearest_path_on_same_line(self.cursor, 1)
                 if cursor:
-                    self.set_cursor(cursor, do_select)
+                    self.set_cursor(cursor, do_select, do_select_between)
 
             return True
 
@@ -273,7 +291,7 @@ class FmdIconView(gtk.DrawingArea):
             if self.cursor:
                 cursor = self._find_nearest_path_on_same_line(self.cursor, -1)
                 if cursor:
-                    self.set_cursor(cursor, do_select)
+                    self.set_cursor(cursor, do_select, do_select_between)
 
             return True
 
