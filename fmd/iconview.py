@@ -2,7 +2,7 @@ from bisect import bisect
 import gtk
 import gobject
 
-from gtk.gdk import Rectangle
+from gtk.gdk import Rectangle, CONTROL_MASK
 from gtk import keysyms
 
 class DrawItem(object):
@@ -69,11 +69,17 @@ class FmdIconView(gtk.DrawingArea):
         for k, v in self.cell_attrs.get(cell, {}).items():
             cell.set_property(k, row[v])
 
+    def unselect_all(self):
+        for path in self.selected:
+            self._queue_path_draw(path)
+
+        self.selected.clear()
+
     def set_cursor(self, path, select=True):
         prev = self.cursor
         self.cursor = path
         if select:
-            self.selected.clear()
+            self.unselect_all()
             self.selected[path] = True
 
         if self.model:
@@ -120,14 +126,8 @@ class FmdIconView(gtk.DrawingArea):
                 self._draw_item(item, self.model[path], xoffset, earea)
         else:
             idx = bisect(self.columns, xoffset + margin) - 1
-            path = self.column_first_item[self.columns[idx]]
-            while True:
-                try:
-                    r = self.model[path]
-                    path = (path[0]+1,)
-                except IndexError:
-                    break
-
+            for path in self._foreach_path(self.column_first_item[self.columns[idx]]):
+                r = self.model[path]
                 item = self.item_cache[r.path]
                 if item.x - xoffset > earea.width:
                     break
@@ -213,6 +213,9 @@ class FmdIconView(gtk.DrawingArea):
         self.window.invalidate_rect(Rectangle(item.x - xoffset, item.y,
             item.width, item.height), False)
 
+    def _foreach_path(self, fpath):
+        return ((r,) for r in xrange(fpath[0], len(self.model)))
+
     def _find_nearest_path_on_same_line(self, path, direction):
         item = self.item_cache[path]
         idx = bisect(self.columns, item.x) + direction - 1
@@ -225,7 +228,7 @@ class FmdIconView(gtk.DrawingArea):
         path = self.column_first_item[self.columns[idx]]
         rpath = None
         dy = 0
-        while True:
+        for path in self._foreach_path(path):
             it = self.item_cache[path]
 
             ndy = abs(it.y - item.y)
@@ -238,25 +241,21 @@ class FmdIconView(gtk.DrawingArea):
             rpath = path
             dy = ndy
 
-            npath = (path[0] + 1,)
-            if npath[0] < 0 or npath[0] >= len(self.model):
-                return path
-
-            path = npath
-
+        return path
 
     def do_key_press_event(self, event):
+        do_select = event.state != CONTROL_MASK
         if event.keyval == keysyms.Down:
             if not self.cursor:
                 self.set_cursor((0,))
             elif self.cursor[0] + 1 < len(self.model):
-                self.set_cursor((self.cursor[0] + 1,))
+                self.set_cursor((self.cursor[0] + 1,), do_select)
 
             return True
 
         if event.keyval == keysyms.Up:
             if self.cursor and self.cursor[0] > 0:
-                self.set_cursor((self.cursor[0] - 1,))
+                self.set_cursor((self.cursor[0] - 1,), do_select)
 
             return True
 
@@ -266,7 +265,7 @@ class FmdIconView(gtk.DrawingArea):
             else:
                 cursor = self._find_nearest_path_on_same_line(self.cursor, 1)
                 if cursor:
-                    self.set_cursor(cursor)
+                    self.set_cursor(cursor, do_select)
 
             return True
 
@@ -274,7 +273,7 @@ class FmdIconView(gtk.DrawingArea):
             if self.cursor:
                 cursor = self._find_nearest_path_on_same_line(self.cursor, -1)
                 if cursor:
-                    self.set_cursor(cursor)
+                    self.set_cursor(cursor, do_select)
 
             return True
 
@@ -283,6 +282,18 @@ class FmdIconView(gtk.DrawingArea):
                 self.emit('item-activated', self.cursor)
 
             return True
+
+        if event.keyval == keysyms.space and event.state == CONTROL_MASK:
+            if self.cursor:
+                if self.cursor in self.selected:
+                    del self.selected[self.cursor]
+                    self._queue_path_draw(self.cursor)
+                elif self.cursor not in self.selected:
+                    self.selected[self.cursor] = True
+                    self._queue_path_draw(self.cursor)
+
+            return True
+
 
         return False
 
