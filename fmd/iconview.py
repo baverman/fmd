@@ -1,4 +1,4 @@
-import bisect
+from bisect import bisect
 import gtk
 import gobject
 
@@ -119,7 +119,7 @@ class FmdIconView(gtk.DrawingArea):
                 path, item = self.item_draw_queue.pop(0)
                 self._draw_item(item, self.model[path], xoffset, earea)
         else:
-            idx = bisect.bisect(self.columns, xoffset + margin) - 1
+            idx = bisect(self.columns, xoffset + margin) - 1
             path = self.column_first_item[self.columns[idx]]
             while True:
                 try:
@@ -213,6 +213,38 @@ class FmdIconView(gtk.DrawingArea):
         self.window.invalidate_rect(Rectangle(item.x - xoffset, item.y,
             item.width, item.height), False)
 
+    def _find_nearest_path_on_same_line(self, path, direction):
+        item = self.item_cache[path]
+        idx = bisect(self.columns, item.x) + direction - 1
+
+        if idx < 0:
+            return 0,
+        elif idx >= len(self.columns):
+            return len(self.model) - 1,
+
+        path = self.column_first_item[self.columns[idx]]
+        rpath = None
+        dy = 0
+        while True:
+            it = self.item_cache[path]
+
+            ndy = abs(it.y - item.y)
+            if ndy == 0:
+                return path
+
+            if rpath and ndy > dy:
+                return rpath
+
+            rpath = path
+            dy = ndy
+
+            npath = (path[0] + 1,)
+            if npath[0] < 0 or npath[0] >= len(self.model):
+                return path
+
+            path = npath
+
+
     def do_key_press_event(self, event):
         if event.keyval == keysyms.Down:
             if not self.cursor:
@@ -228,6 +260,24 @@ class FmdIconView(gtk.DrawingArea):
 
             return True
 
+        if event.keyval == keysyms.Right:
+            if not self.cursor:
+                self.set_cursor((0,))
+            else:
+                cursor = self._find_nearest_path_on_same_line(self.cursor, 1)
+                if cursor:
+                    self.set_cursor(cursor)
+
+            return True
+
+        if event.keyval == keysyms.Left:
+            if self.cursor:
+                cursor = self._find_nearest_path_on_same_line(self.cursor, -1)
+                if cursor:
+                    self.set_cursor(cursor)
+
+            return True
+
         if event.keyval == keysyms.Return:
             if self.cursor:
                 self.emit('item-activated', self.cursor)
@@ -239,11 +289,11 @@ class FmdIconView(gtk.DrawingArea):
 gobject.type_register(FmdIconView)
 
 gtk.widget_class_install_style_property(FmdIconView, ('hspacing', gobject.TYPE_INT,
-    'Horizontal spacing', 'Horizontal spacing beetwen items', gobject.G_MININT, gobject.G_MAXINT,
+    'Horizontal spacing', 'Horizontal spacing between items', gobject.G_MININT, gobject.G_MAXINT,
     10, gobject.PARAM_READWRITE))
 
 gtk.widget_class_install_style_property(FmdIconView, ('vspacing', gobject.TYPE_INT,
-    'Vertical spacing', 'Vertical spacing beetwen items', gobject.G_MININT, gobject.G_MAXINT,
+    'Vertical spacing', 'Vertical spacing between items', gobject.G_MININT, gobject.G_MAXINT,
     2, gobject.PARAM_READWRITE))
 
 gtk.widget_class_install_style_property(FmdIconView, ('margin', gobject.TYPE_INT,
