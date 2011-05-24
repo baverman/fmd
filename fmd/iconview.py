@@ -1,3 +1,4 @@
+import bisect
 import gtk
 import gobject
 
@@ -54,6 +55,8 @@ class FmdIconView(gtk.DrawingArea):
         self.text_renderer = None
         self.cell_attrs = {}
         self.item_cache = {}
+        self.columns = []
+        self.column_first_item = {}
         self.selected = {}
         self.cursor = None
 
@@ -82,25 +85,25 @@ class FmdIconView(gtk.DrawingArea):
     def get_cursor(self):
         return self.cursor
 
-    def _draw_item(self, item, row, earea):
+    def _draw_item(self, item, row, xoffset, earea):
         flags = 0
         if row.path in self.selected:
             flags = gtk.CELL_RENDERER_SELECTED
             self.style.paint_flat_box(self.window, gtk.STATE_SELECTED, gtk.SHADOW_NONE,
-                earea, self, 'fmd icon text', item.x + item.tx, item.y + item.ty,
+                earea, self, 'fmd icon text', item.x + item.tx - xoffset, item.y + item.ty,
                 item.twidth, item.theight)
 
         self._prepare_cell(self.icon_renderer, row)
-        area = Rectangle(item.x + item.ix, item.y + item.iy, item.iwidth, item.iheight)
+        area = Rectangle(item.x + item.ix - xoffset, item.y + item.iy, item.iwidth, item.iheight)
         self.icon_renderer.render(self.window, self, area, area, earea, flags)
 
         self._prepare_cell(self.text_renderer, row)
-        area = Rectangle(item.x + item.tx, item.y + item.ty, item.twidth, item.theight)
+        area = Rectangle(item.x + item.tx - xoffset, item.y + item.ty, item.twidth, item.theight)
         self.text_renderer.render(self.window, self, area, area, earea, flags)
 
         if row.path == self.cursor:
             self.style.paint_focus(self.window, gtk.STATE_NORMAL,
-                earea, self, 'fmd icon text focus', item.x + item.tx, item.y + item.ty,
+                earea, self, 'fmd icon text focus', item.x + item.tx - xoffset, item.y + item.ty,
                 item.twidth, item.theight)
 
     def do_expose_event(self, event):
@@ -108,19 +111,28 @@ class FmdIconView(gtk.DrawingArea):
             return True
 
         earea = event.area
+        xoffset = int(self._hadj.value)
+        margin = self.style_get_property('margin')
 
         if self.item_draw_queue:
             while self.item_draw_queue:
                 path, item = self.item_draw_queue.pop(0)
-                self._draw_item(item, self.model[path], earea)
+                self._draw_item(item, self.model[path], xoffset, earea)
         else:
-            for r in self.model:
-                item = self.item_cache[r.path]
-
-                if item.x > earea:
+            idx = bisect.bisect(self.columns, xoffset + margin) - 1
+            path = self.column_first_item[self.columns[idx]]
+            while True:
+                try:
+                    r = self.model[path]
+                    path = (path[0]+1,)
+                except IndexError:
                     break
 
-                self._draw_item(item, r, earea)
+                item = self.item_cache[r.path]
+                if item.x - xoffset > earea.width:
+                    break
+
+                self._draw_item(item, r, xoffset, earea)
 
         return True
 
@@ -133,7 +145,9 @@ class FmdIconView(gtk.DrawingArea):
         self.allocation = allocation
         if self.flags() & gtk.REALIZED:
             self.window.move_resize(*allocation)
-            self.update_item_cache()
+            maxx = self.update_item_cache()
+            self._hadj.configure(0, 0, maxx, allocation.width*0.1, allocation.width*0.9,
+                allocation.width)
 
     def do_set_scroll_adjustments(self, h_adjustment, v_adjustment):
         if h_adjustment:
@@ -141,16 +155,8 @@ class FmdIconView(gtk.DrawingArea):
                 "value-changed", self.hscroll_value_changed)
             self._hadj = h_adjustment
 
-        if v_adjustment:
-            self._vscroll_handler_id = v_adjustment.connect(
-                "value-changed", self.vscroll_value_changed)
-            self._vadj = v_adjustment
-
     def hscroll_value_changed(self, *args):
-        print args
-
-    def vscroll_value_changed(self, *args):
-        print args
+        self.queue_draw()
 
     def set_model(self, model):
         self.model = model
@@ -158,6 +164,7 @@ class FmdIconView(gtk.DrawingArea):
 
     def update_item_cache(self):
         self.item_cache.clear()
+        self.columns[:] = []
 
         if not self.model:
             return
@@ -169,6 +176,8 @@ class FmdIconView(gtk.DrawingArea):
         x = y = margin
         maxy = self.allocation.height - margin
         mx = 0
+        self.columns.append(x)
+        self.column_first_item[x] = (0,)
         for r in self.model:
             self._prepare_cell(self.icon_renderer, r)
             self._prepare_cell(self.text_renderer, r)
@@ -177,6 +186,8 @@ class FmdIconView(gtk.DrawingArea):
             ny = y + item.height + vs
             if ny > maxy:
                 x += mx + hs
+                self.columns.append(x)
+                self.column_first_item[x] = r.path
                 mx = 0
                 y = margin
                 ny = y + item.height + vs
@@ -189,6 +200,8 @@ class FmdIconView(gtk.DrawingArea):
 
             y = ny
 
+        return x + mx
+
     def do_realize(self):
         gtk.DrawingArea.do_realize(self)
         self.window.set_background(self.style.base[gtk.STATE_NORMAL])
@@ -196,7 +209,9 @@ class FmdIconView(gtk.DrawingArea):
     def _queue_path_draw(self, path):
         item = self.item_cache[path]
         self.item_draw_queue.append((path, item))
-        self.window.invalidate_rect(Rectangle(item.x, item.y, item.width, item.height), False)
+        xoffset = int(self._hadj.value)
+        self.window.invalidate_rect(Rectangle(item.x - xoffset, item.y,
+            item.width, item.height), False)
 
     def do_key_press_event(self, event):
         if event.keyval == keysyms.Down:
