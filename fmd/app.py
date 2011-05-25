@@ -6,9 +6,11 @@ import filelist
 
 class App(object):
     def __init__(self):
+        self.wg = gtk.WindowGroup()
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_default_size(700, 415)
         self.window.connect('destroy', self.quit)
+        self.wg.add_window(self.window)
 
         self.filelist = filelist.FileList()
         self.window.add(self.filelist.widget)
@@ -30,7 +32,7 @@ class App(object):
         gtk.main_quit()
 
     def get_context(self, window):
-        if self.filelist.view.has_focus():
+        if self.filelist.view.has_focus() and not self.filelist.isearch.is_active():
             return 'filelist', self.filelist
 
         return 'any', None

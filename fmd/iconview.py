@@ -137,9 +137,12 @@ class FmdIconView(gtk.DrawingArea):
         margin = self.style_get_property('margin')
 
         if self.item_draw_queue:
+            processed = {}
             while self.item_draw_queue:
                 path, item = self.item_draw_queue.pop(0)
+                if path in processed: continue
                 self._draw_item(item, self.model[path], xoffset, earea)
+                processed[path] = True
         else:
             idx = bisect(self.columns, xoffset + margin) - 1
             for path in self._foreach_path(self.column_first_item[self.columns[idx]]):
@@ -311,7 +314,6 @@ class FmdIconView(gtk.DrawingArea):
                     self._queue_path_draw(self.cursor)
 
             return True
-
 
         return False
 

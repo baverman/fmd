@@ -1,6 +1,8 @@
 import gtk
 import gio
 
+from uxie.search import InteractiveSearch
+
 from .iconview import FmdIconView
 
 def init(activator):
@@ -86,10 +88,32 @@ class FileList(object):
 
         self.sw.add(view)
 
+        self.isearch = InteractiveSearch(self._search)
+        self.isearch.attach(view)
+
         self.icon_cache = {}
         self.current_folder = None
         self.history = History()
         self.show_hidden = False
+
+    def _search(self, text, direction, skip):
+        idx = sidx = self.view.get_cursor()[0] if self.view.get_cursor() else 0
+
+        if skip:
+            idx = (sidx + direction) % len(self.model)
+        else:
+            sidx = (sidx - 1) % len(self.model)
+
+        while sidx != idx:
+            r = self.model[idx]
+            if r[1].lower().startswith(text):
+                self.view.set_cursor((idx,))
+                break
+
+            idx = (idx + direction) % len(self.model)
+        else:
+            if not skip:
+                self.view.unselect_all()
 
     def set_uri(self, uri, add_to_history=True, cursor=None, scroll=None):
         self.uri_entry.set_text(uri)
