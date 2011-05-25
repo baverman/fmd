@@ -61,6 +61,7 @@ class FmdIconView(gtk.DrawingArea):
         self.cursor = None
 
         self.item_draw_queue = []
+        self.needed_full_redraw = False
 
     def set_attributes(self, cell, **kwargs):
         self.cell_attrs[cell] = kwargs
@@ -103,6 +104,7 @@ class FmdIconView(gtk.DrawingArea):
                         self._queue_path_draw(path)
 
             self._queue_path_draw(self.cursor)
+            self.scroll_to_path(self.cursor)
 
     def get_cursor(self):
         return self.cursor
@@ -136,7 +138,7 @@ class FmdIconView(gtk.DrawingArea):
         xoffset = int(self._hadj.value)
         margin = self.style_get_property('margin')
 
-        if self.item_draw_queue:
+        if not self.needed_full_redraw and self.item_draw_queue:
             processed = {}
             while self.item_draw_queue:
                 path, item = self.item_draw_queue.pop(0)
@@ -144,6 +146,7 @@ class FmdIconView(gtk.DrawingArea):
                 self._draw_item(item, self.model[path], xoffset, earea)
                 processed[path] = True
         else:
+            self.needed_full_redraw = False
             idx = bisect(self.columns, xoffset + margin) - 1
             for path in self._foreach_path(self.column_first_item[self.columns[idx]]):
                 r = self.model[path]
@@ -173,6 +176,7 @@ class FmdIconView(gtk.DrawingArea):
             self._hadj = h_adjustment
 
     def hscroll_value_changed(self, *args):
+        self.needed_full_redraw = True
         self.queue_draw()
 
     def set_model(self, model):
@@ -261,6 +265,25 @@ class FmdIconView(gtk.DrawingArea):
             dy = ndy
 
         return path
+
+    def scroll_to_path(self, path, align=None):
+        item = self.item_cache[path]
+        maxx = self.allocation.width
+        xoffset = int(self._hadj.value)
+
+        x1 = item.x - xoffset
+        x2 = item.x + item.width - xoffset
+        if align is None:
+            if  0 <= x1 <= maxx and 0 <= x2 <= maxx:
+                return
+            elif x1 < 0:
+                dx = x1
+            elif x2 > maxx:
+                dx = min(x1, x2 - maxx)
+        else:
+            dx = 0
+
+        self._hadj.value = max(0, xoffset + dx)
 
     def do_key_press_event(self, event):
         keyval = event.keyval
