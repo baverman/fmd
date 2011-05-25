@@ -265,49 +265,50 @@ class FmdIconView(gtk.DrawingArea):
     def do_key_press_event(self, event):
         keyval = event.keyval
         state = event.state
-        do_select_between = state == SHIFT_MASK
-        do_select = not do_select_between and state != CONTROL_MASK
-        ctrl_shift = set((0, SHIFT_MASK, CONTROL_MASK))
 
-        if keyval == keysyms.Down and state in ctrl_shift:
-            if not self.cursor:
-                self.set_cursor((0,))
-            elif self.cursor[0] + 1 < len(self.model):
-                self.set_cursor((self.cursor[0] + 1,), do_select, do_select_between)
+        if state | SHIFT_MASK | CONTROL_MASK == SHIFT_MASK | CONTROL_MASK:
+            do_select_between = state == SHIFT_MASK
+            do_select = not do_select_between and state != CONTROL_MASK
 
-            return True
+            if keyval == keysyms.Down:
+                if not self.cursor:
+                    self.set_cursor((0,))
+                elif self.cursor[0] + 1 < len(self.model):
+                    self.set_cursor((self.cursor[0] + 1,), do_select, do_select_between)
 
-        if event.keyval == keysyms.Up and state in ctrl_shift:
-            if self.cursor and self.cursor[0] > 0:
-                self.set_cursor((self.cursor[0] - 1,), do_select, do_select_between)
+                return True
 
-            return True
+            if keyval == keysyms.Up:
+                if self.cursor and self.cursor[0] > 0:
+                    self.set_cursor((self.cursor[0] - 1,), do_select, do_select_between)
 
-        if event.keyval == keysyms.Right and state in ctrl_shift:
-            if not self.cursor:
-                self.set_cursor((0,))
-            else:
-                cursor = self._find_nearest_path_on_same_line(self.cursor, 1)
-                if cursor:
-                    self.set_cursor(cursor, do_select, do_select_between)
+                return True
 
-            return True
+            if keyval == keysyms.Right:
+                if not self.cursor:
+                    self.set_cursor((0,))
+                else:
+                    cursor = self._find_nearest_path_on_same_line(self.cursor, 1)
+                    if cursor:
+                        self.set_cursor(cursor, do_select, do_select_between)
 
-        if event.keyval == keysyms.Left and state in ctrl_shift:
-            if self.cursor:
-                cursor = self._find_nearest_path_on_same_line(self.cursor, -1)
-                if cursor:
-                    self.set_cursor(cursor, do_select, do_select_between)
+                return True
 
-            return True
+            if keyval == keysyms.Left:
+                if self.cursor:
+                    cursor = self._find_nearest_path_on_same_line(self.cursor, -1)
+                    if cursor:
+                        self.set_cursor(cursor, do_select, do_select_between)
 
-        if event.keyval == keysyms.Return and not state:
+                return True
+
+        if keyval == keysyms.Return and not state:
             if self.cursor:
                 self.emit('item-activated', self.cursor)
 
             return True
 
-        if event.keyval == keysyms.space and event.state == CONTROL_MASK:
+        if keyval == keysyms.space and state == CONTROL_MASK:
             if self.cursor:
                 if self.cursor in self.selected:
                     del self.selected[self.cursor]
