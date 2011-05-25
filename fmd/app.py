@@ -32,7 +32,4 @@ class App(object):
         gtk.main_quit()
 
     def get_context(self, window):
-        if self.filelist.view.has_focus() and not self.filelist.isearch.is_active():
-            return 'filelist', self.filelist
-
-        return 'any', None
+        return 'filelist', self.filelist

@@ -164,9 +164,7 @@ class FmdIconView(gtk.DrawingArea):
         self.allocation = allocation
         if self.flags() & gtk.REALIZED:
             self.window.move_resize(*allocation)
-            maxx = self.update_item_cache()
-            self._hadj.configure(0, 0, maxx, allocation.width*0.1, allocation.width*0.9,
-                allocation.width)
+            self.update_item_cache()
 
     def do_set_scroll_adjustments(self, h_adjustment, v_adjustment):
         if h_adjustment:
@@ -219,7 +217,8 @@ class FmdIconView(gtk.DrawingArea):
 
             y = ny
 
-        return x + mx
+        self._hadj.configure(0, 0, x+mx, self.allocation.width*0.1, self.allocation.width*0.9,
+            self.allocation.width)
 
     def do_realize(self):
         gtk.DrawingArea.do_realize(self)
@@ -264,9 +263,13 @@ class FmdIconView(gtk.DrawingArea):
         return path
 
     def do_key_press_event(self, event):
-        do_select_between = event.state == SHIFT_MASK
-        do_select = not do_select_between and event.state != CONTROL_MASK
-        if event.keyval == keysyms.Down:
+        keyval = event.keyval
+        state = event.state
+        do_select_between = state == SHIFT_MASK
+        do_select = not do_select_between and state != CONTROL_MASK
+        ctrl_shift = set((0, SHIFT_MASK, CONTROL_MASK))
+
+        if keyval == keysyms.Down and state in ctrl_shift:
             if not self.cursor:
                 self.set_cursor((0,))
             elif self.cursor[0] + 1 < len(self.model):
@@ -274,13 +277,13 @@ class FmdIconView(gtk.DrawingArea):
 
             return True
 
-        if event.keyval == keysyms.Up:
+        if event.keyval == keysyms.Up and state in ctrl_shift:
             if self.cursor and self.cursor[0] > 0:
                 self.set_cursor((self.cursor[0] - 1,), do_select, do_select_between)
 
             return True
 
-        if event.keyval == keysyms.Right:
+        if event.keyval == keysyms.Right and state in ctrl_shift:
             if not self.cursor:
                 self.set_cursor((0,))
             else:
@@ -290,7 +293,7 @@ class FmdIconView(gtk.DrawingArea):
 
             return True
 
-        if event.keyval == keysyms.Left:
+        if event.keyval == keysyms.Left and state in ctrl_shift:
             if self.cursor:
                 cursor = self._find_nearest_path_on_same_line(self.cursor, -1)
                 if cursor:
@@ -298,7 +301,7 @@ class FmdIconView(gtk.DrawingArea):
 
             return True
 
-        if event.keyval == keysyms.Return:
+        if event.keyval == keysyms.Return and not state:
             if self.cursor:
                 self.emit('item-activated', self.cursor)
 
