@@ -1,3 +1,4 @@
+import os
 import gtk
 import gio
 
@@ -6,22 +7,28 @@ from uxie.search import InteractiveSearch
 from .iconview import FmdIconView
 
 def init(activator):
-    activator.bind_accel('filelist/navigate/parent', 'Navigate to parent directory',
+    activator.bind_accel('a_filelist', 'navigate/parent', 'Navigate to parent directory',
         '<alt>Up', FileList.navigate_parent)
 
-    activator.bind_accel('filelist/navigate/back', 'Navigate back in history',
+    activator.bind_accel('a_filelist', 'navigate/back', 'Navigate back in history',
         '<alt>Left', FileList.navigate_back)
-    activator.map('filelist/navigate/back', 'BackSpace')
+    activator.map('a_filelist', 'navigate/back', 'BackSpace')
 
-    activator.bind_accel('filelist/navigate/forward', 'Navigate forward in history',
+    activator.bind_accel('a_filelist', 'navigate/forward', 'Navigate forward in history',
         '<alt>Right', FileList.navigate_forward)
 
-    activator.bind_accel('filelist/view/hidden', 'Toggle hidden files',
+    activator.bind_accel('filelist', 'view/hidden', 'Toggle hidden files',
         '<ctrl>h', FileList.show_hidden)
 
-    activator.bind_accel('any/activate/location', 'Activate location bar',
-        '<ctrl>l', FileList.activate_location)
+    activator.bind('s_filelist', 'copy', 'Copy', FileList.copy)
+    activator.bind('s_filelist', 'cut', 'Cut', FileList.cut)
+    activator.bind('filelist', 'paste', 'Paste', FileList.paste)
+    activator.bind_accel('s_filelist', 'delete', 'Delete', 'Delete', FileList.delete)
+    activator.bind_accel('s_filelist', 'force-delete', 'Force delete',
+        '<shift>Delete', FileList.force_delete, 10)
 
+    activator.bind_accel('filelist', 'activate/location', 'Activate location bar',
+        '<ctrl>l', FileList.activate_location)
 
 class History(object):
     def __init__(self):
@@ -57,8 +64,9 @@ class History(object):
 
 
 class FileList(object):
-    def __init__(self):
-        self.model = gtk.ListStore(gtk.gdk.Pixbuf, str, str)
+    def __init__(self, clipboard):
+        self.clipboard = clipboard
+        self.model = gtk.ListStore(gtk.gdk.Pixbuf, str, gio.FileInfo, bool)
 
         self.widget = gtk.VBox()
 
@@ -72,19 +80,17 @@ class FileList(object):
         self.widget.pack_start(self.sw)
 
         self.view = view = FmdIconView()
-        #view.set_single_click(True)
-        #view.set_single_click_timeout(1000)
         view.connect('item-activated', self.on_item_activated)
 
         icon_cell = gtk.CellRendererPixbuf()
         view.icon_renderer = icon_cell
-        view.set_attributes(icon_cell, pixbuf=0)
+        view.set_attributes(icon_cell, pixbuf=0, sensitive=3)
         icon_cell.props.follow_state = True
         icon_cell.props.xpad = 1
 
         text_cell = gtk.CellRendererText()
         view.text_renderer = text_cell
-        view.set_attributes(text_cell, text=1)
+        view.set_attributes(text_cell, text=1, sensitive=3)
 
         self.sw.add(view)
 
@@ -173,7 +179,7 @@ class FileList(object):
 
         self.model.clear()
         for _, _, name, info in sorted(infos):
-            self.model.append((self.get_pixbuf(info), name, None))
+            self.model.append((self.get_pixbuf(info), name, info, True))
 
         if cursor:
             self.view.set_cursor(cursor)
@@ -191,7 +197,17 @@ class FileList(object):
 
     def on_item_activated(self, view, path):
         row = self.model[path]
-        self.set_uri(self.current_folder.get_child_for_display_name(row[1]).get_path())
+        fi = row[2]
+        ft = fi.get_file_type()
+        cfile = self.current_folder.get_child_for_display_name(row[1])
+
+        if ft == gio.FILE_TYPE_DIRECTORY:
+            self.set_uri(cfile.get_path())
+        elif ft == gio.FILE_TYPE_REGULAR:
+            app_info = gio.app_info_get_default_for_type(fi.get_content_type(), False)
+            if app_info:
+                os.chdir(self.current_folder.get_path())
+                app_info.launch([cfile])
 
     def navigate_parent(self):
         parent = self.current_folder.get_parent()
@@ -216,3 +232,18 @@ class FileList(object):
     def show_hidden(self):
         self.show_hidden = not self.show_hidden
         self.fill(self.current_folder.get_path(), False)
+
+    def cut(self):
+        print 'cut'
+
+    def copy(self):
+        print 'copy'
+
+    def paste(self):
+        print 'paste'
+
+    def delete(self):
+        print 'delete'
+
+    def force_delete(self):
+        print 'fdelete'
