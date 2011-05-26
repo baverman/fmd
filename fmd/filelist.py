@@ -69,8 +69,10 @@ class History(object):
 
 
 class FileList(object):
-    def __init__(self, clipboard):
+    def __init__(self, clipboard, feedback):
         self.clipboard = clipboard
+        self.feedback = feedback
+
         self.model = gtk.ListStore(gtk.gdk.Pixbuf, str, gio.FileInfo, bool)
 
         self.widget = gtk.VBox()
@@ -238,17 +240,42 @@ class FileList(object):
         self.show_hidden = not self.show_hidden
         self.fill(self.current_folder.get_path(), False)
 
+    def get_filelist_from_selection(self):
+        result = []
+        for path in self.view.selected:
+            result.append(self.current_folder.get_child_for_display_name(
+                self.model[path][1]))
+
+        return result
+
     def cut(self):
-        print 'cut'
+        filelist = self.get_filelist_from_selection()
+        self.clipboard.cut(filelist)
+
+        for r in self.model:
+            r[3] = r.path not in self.view.selected
+        self.view.queue_draw()
+        self.feedback.show_feedback('Cut')
 
     def copy(self):
-        print 'copy'
+        filelist = self.get_filelist_from_selection()
+        self.clipboard.copy(filelist)
+
+        for r in self.model:
+            r[3] = True
+        self.view.queue_draw()
+        self.feedback.show_feedback('Copy')
 
     def paste(self):
-        print 'paste'
+        self.clipboard.paste(self.current_folder)
+
+        for r in self.model:
+            r[3] = True
+        self.view.queue_draw()
+        self.feedback.show_feedback('Pasted', 'done')
 
     def delete(self):
-        print 'delete'
+        self.feedback.show_feedback('You are going to delete files', 'warn')
 
     def force_delete(self):
-        print 'fdelete'
+        self.feedback.show_feedback('You are going to delete files', 'error')

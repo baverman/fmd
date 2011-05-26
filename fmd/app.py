@@ -1,7 +1,7 @@
 import gtk
 
 from uxie.actions import Activator, ContextActivator
-
+from uxie.feedback import TextFeedback, FeedbackManager
 import filelist
 import clipboard
 
@@ -14,8 +14,9 @@ class App(object):
         self.wg.add_window(self.window)
 
         self.clipboard = clipboard.Clipboard()
+        self.feedback = FeedbackManager()
 
-        self.filelist = filelist.FileList(self.clipboard)
+        self.filelist = filelist.FileList(self.clipboard, self)
         self.window.add(self.filelist.widget)
 
         self.activator = Activator()
@@ -50,3 +51,6 @@ class App(object):
             return self.filelist
 
         return None
+
+    def show_feedback(self, text, category='info'):
+        self.feedback.add_feedback(self.window, TextFeedback(text, category))
