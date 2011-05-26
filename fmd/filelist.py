@@ -7,28 +7,33 @@ from uxie.search import InteractiveSearch
 from .iconview import FmdIconView
 
 def init(activator):
-    activator.bind_accel('a_filelist', 'navigate/parent', 'Navigate to parent directory',
-        '<alt>Up', FileList.navigate_parent)
+    with activator.on('filelist') as ctx:
+        ctx.bind_accel('view/hidden', 'Toggle hidden files',
+            '<ctrl>h', FileList.show_hidden)
 
-    activator.bind_accel('a_filelist', 'navigate/back', 'Navigate back in history',
-        '<alt>Left', FileList.navigate_back)
-    activator.map('a_filelist', 'navigate/back', 'BackSpace')
+        ctx.bind('paste', 'Paste', FileList.paste)
 
-    activator.bind_accel('a_filelist', 'navigate/forward', 'Navigate forward in history',
-        '<alt>Right', FileList.navigate_forward)
+        ctx.bind_accel('activate/location', 'Activate location bar',
+            '<ctrl>l', FileList.activate_location)
 
-    activator.bind_accel('filelist', 'view/hidden', 'Toggle hidden files',
-        '<ctrl>h', FileList.show_hidden)
+    with activator.on('filelist_active') as ctx:
+        ctx.bind_accel('navigate/parent', 'Navigate to parent directory',
+            '<alt>Up', FileList.navigate_parent)
 
-    activator.bind('s_filelist', 'copy', 'Copy', FileList.copy)
-    activator.bind('s_filelist', 'cut', 'Cut', FileList.cut)
-    activator.bind('filelist', 'paste', 'Paste', FileList.paste)
-    activator.bind_accel('s_filelist', 'delete', 'Delete', 'Delete', FileList.delete)
-    activator.bind_accel('s_filelist', 'force-delete', 'Force delete',
-        '<shift>Delete', FileList.force_delete, 10)
+        ctx.bind_accel('navigate/back', 'Navigate back in history',
+            '<alt>Left', FileList.navigate_back)
+        ctx.map('navigate/back', 'BackSpace')
 
-    activator.bind_accel('filelist', 'activate/location', 'Activate location bar',
-        '<ctrl>l', FileList.activate_location)
+        ctx.bind_accel('navigate/forward', 'Navigate forward in history',
+            '<alt>Right', FileList.navigate_forward)
+
+    with activator.on('filelist_with_selected_files') as ctx:
+        ctx.bind('copy', 'Copy', FileList.copy)
+        ctx.bind('cut', 'Cut', FileList.cut)
+        ctx.bind_accel('delete', 'Delete', 'Delete', FileList.delete)
+        ctx.bind_accel('force-delete', 'Force delete',
+            '<shift>Delete', FileList.force_delete, 10)
+
 
 class History(object):
     def __init__(self):

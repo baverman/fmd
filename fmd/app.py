@@ -44,9 +44,9 @@ class App(object):
     def get_context(self, window, ctx):
         if ctx == 'filelist':
             return self.filelist
-        elif ctx == 'a_filelist' and self.filelist.view.has_focus():
+        elif ctx == 'filelist_active' and self.filelist.view.has_focus():
             return self.filelist
-        elif ctx == 's_filelist' and self.filelist.view.selected:
+        elif ctx == 'filelist_with_selected_files' and self.filelist.view.selected:
             return self.filelist
 
         return None
