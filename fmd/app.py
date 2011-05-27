@@ -1,7 +1,7 @@
 import gtk
 
 from uxie.actions import Activator, ContextActivator
-from uxie.feedback import TextFeedback, FeedbackManager
+from uxie.feedback import TextFeedback, FeedbackManager, FeedbackHelper
 import filelist
 import clipboard
 
@@ -15,8 +15,9 @@ class App(object):
 
         self.clipboard = clipboard.Clipboard()
         self.feedback = FeedbackManager()
+        self.window.feedback = FeedbackHelper(self.feedback, self.window)
 
-        self.filelist = filelist.FileList(self.clipboard, self)
+        self.filelist = filelist.FileList(self.clipboard)
         self.window.add(self.filelist.widget)
 
         self.activator = Activator()
@@ -47,7 +48,7 @@ class App(object):
             return self.filelist
         elif ctx == 'filelist_active' and self.filelist.view.has_focus():
             return self.filelist
-        elif ctx == 'filelist_with_selected_files' and self.filelist.view.selected:
+        elif ctx == 'filelist_with_selected_files' and self.filelist.model.selection:
             return self.filelist
 
         return None

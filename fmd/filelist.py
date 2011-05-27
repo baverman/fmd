@@ -3,6 +3,7 @@ import gtk
 import gio
 
 from uxie.search import InteractiveSearch
+from uxie.tree import SelectionListStore
 
 from .iconview import FmdIconView
 
@@ -69,11 +70,10 @@ class History(object):
 
 
 class FileList(object):
-    def __init__(self, clipboard, feedback):
+    def __init__(self, clipboard):
         self.clipboard = clipboard
-        self.feedback = feedback
 
-        self.model = gtk.ListStore(gtk.gdk.Pixbuf, str, gio.FileInfo, bool)
+        self.model = SelectionListStore(gtk.gdk.Pixbuf, str, gio.FileInfo, bool)
 
         self.widget = gtk.VBox()
 
@@ -108,6 +108,12 @@ class FileList(object):
         self.current_folder = None
         self.history = History()
         self.show_hidden = False
+
+        self.monitor = None
+
+    @property
+    def feedback(self):
+        return self.view.get_toplevel().feedback
 
     def _search(self, text, direction, skip):
         idx = sidx = self.view.get_cursor()[0] if self.view.get_cursor() else 0
@@ -157,6 +163,48 @@ class FileList(object):
         self.icon_cache[content_type] = pixbuf
         return pixbuf
 
+    def setup_monitor(self, file):
+        if self.monitor:
+            self.monitor.cancel()
+
+        self.monitor = file.monitor()
+        self.monitor.connect('changed', self.on_file_change)
+
+    def get_info_for_file_which_will_change_model(self, file):
+        if not self.current_folder.equal(file.get_parent()):
+            return None
+
+        fi = file.query_info('standard::*')
+        if not self.show_hidden and fi.get_is_hidden():
+            return None
+
+        return fi
+
+    def add_file(self, file):
+        fi = self.get_info_for_file_which_will_change_model(file)
+        self.model.append((self.get_pixbuf(fi), fi.get_display_name(), fi, True))
+        self.view.refresh()
+
+    def remove_file(self, file):
+        if not self.current_folder.equal(file.get_parent()):
+            return None
+
+        for r in self.model:
+            if r[2].get_name() == file.get_basename():
+                del self.model[r.path]
+                break
+
+        self.view.refresh()
+
+    def on_file_change(self, monitor, file, other_file, event_type):
+        if event_type == gio.FILE_MONITOR_EVENT_CREATED:
+            self.add_file(file)
+        elif event_type == gio.FILE_MONITOR_EVENT_DELETED:
+            self.remove_file(file)
+        elif event_type == gio.FILE_MONITOR_EVENT_MOVED:
+            self.remove_file(file)
+            self.add_file(other_file)
+
     def fill(self, uri, add_to_history=True, cursor=None, scroll=None):
         self.view.set_model(None)
 
@@ -167,6 +215,8 @@ class FileList(object):
 
         self.current_folder = gio.file_parse_name(uri)
         enumerator = self.current_folder.enumerate_children('standard::*')
+
+        self.setup_monitor(self.current_folder)
 
         infos = []
         while True:
@@ -242,7 +292,7 @@ class FileList(object):
 
     def get_filelist_from_selection(self):
         result = []
-        for path in self.view.selected:
+        for path in self.model.selection:
             result.append(self.current_folder.get_child_for_display_name(
                 self.model[path][1]))
 
@@ -253,9 +303,9 @@ class FileList(object):
         self.clipboard.cut(filelist)
 
         for r in self.model:
-            r[3] = r.path not in self.view.selected
+            r[3] = r.path not in self.model.selection
         self.view.queue_draw()
-        self.feedback.show_feedback('Cut')
+        self.feedback.show('Cut')
 
     def copy(self):
         filelist = self.get_filelist_from_selection()
@@ -264,7 +314,7 @@ class FileList(object):
         for r in self.model:
             r[3] = True
         self.view.queue_draw()
-        self.feedback.show_feedback('Copy')
+        self.feedback.show('Copy')
 
     def paste(self):
         self.clipboard.paste(self.current_folder)
@@ -272,10 +322,20 @@ class FileList(object):
         for r in self.model:
             r[3] = True
         self.view.queue_draw()
-        self.feedback.show_feedback('Pasted', 'done')
+        self.feedback.show('Pasted', 'done')
 
     def delete(self):
-        self.feedback.show_feedback('You are going to delete files', 'warn')
+        files = self.get_filelist_from_selection()
+        try:
+            for f in files:
+                f.trash()
+        except gio.Error, e:
+            self.feedback.show(str(e), 'error')
+        else:
+            if len(files) == 1:
+                self.feedback.show('File was deleted', 'done')
+            else:
+                self.feedback.show('Files were deleted', 'done')
 
     def force_delete(self):
-        self.feedback.show_feedback('You are going to delete files', 'error')
+        self.feedback.show('You are going to delete files', 'error')

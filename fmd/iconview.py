@@ -57,7 +57,6 @@ class FmdIconView(gtk.DrawingArea):
         self.item_cache = {}
         self.columns = []
         self.column_first_item = {}
-        self.selected = {}
         self.cursor = None
 
         self.item_draw_queue = []
@@ -72,34 +71,36 @@ class FmdIconView(gtk.DrawingArea):
 
     def unselect_all(self):
         if self.model:
-            for path in self.selected:
+            for path in self.model.selection:
                 self._queue_path_draw(path)
 
-        self.selected.clear()
+            self.model.clear_selection()
 
     def set_cursor(self, path, select=True, select_between=False):
         prev = self.cursor
         self.cursor = path
-        if select:
-            self.unselect_all()
-            self.selected[path] = True
 
         if self.model:
+            if select:
+                self.unselect_all()
+                self.model.select(path)
+
+            if self.cursor not in self.item_cache:
+                return
+
             if prev:
                 self._queue_path_draw(prev)
                 if select_between:
                     cursor = self.cursor
-                    remove_selection = cursor in self.selected and prev in self.selected
+                    remove_selection = self.model.is_selected(cursor) and self.model.is_selected(prev)
                     if prev > self.cursor:
                          prev, cursor = cursor, prev
 
                     for path in self._foreach_path(prev, cursor):
                         if remove_selection and path != self.cursor:
-                            try:
-                                del self.selected[path]
-                            except KeyError: pass
+                            self.model.unselect(path)
                         else:
-                            self.selected[path] = True
+                            self.model.select(path)
 
                         self._queue_path_draw(path)
 
@@ -111,7 +112,7 @@ class FmdIconView(gtk.DrawingArea):
 
     def _draw_item(self, item, row, xoffset, earea):
         flags = 0
-        if row.path in self.selected:
+        if self.model.is_selected(row.path):
             flags = gtk.CELL_RENDERER_SELECTED
             self.style.paint_flat_box(self.window, gtk.STATE_SELECTED, gtk.SHADOW_NONE,
                 earea, self, 'fmd icon text', item.x + item.tx - xoffset, item.y + item.ty,
@@ -229,7 +230,11 @@ class FmdIconView(gtk.DrawingArea):
         self.window.set_background(self.style.base[gtk.STATE_NORMAL])
 
     def _queue_path_draw(self, path):
-        item = self.item_cache[path]
+        try:
+            item = self.item_cache[path]
+        except KeyError:
+            return
+
         self.item_draw_queue.append((path, item))
         xoffset = int(self._hadj.value)
         self.window.invalidate_rect(Rectangle(item.x - xoffset, item.y,
@@ -270,9 +275,10 @@ class FmdIconView(gtk.DrawingArea):
         item = self.item_cache[path]
         maxx = self.allocation.width
         xoffset = int(self._hadj.value)
+        margin = self.style_get_property('margin')
 
-        x1 = item.x - xoffset
-        x2 = item.x + item.width - xoffset
+        x1 = item.x - xoffset - margin
+        x2 = x1 + item.width
         if align is None:
             if  0 <= x1 <= maxx and 0 <= x2 <= maxx:
                 return
@@ -333,16 +339,18 @@ class FmdIconView(gtk.DrawingArea):
 
         if keyval == keysyms.space and state == CONTROL_MASK:
             if self.cursor:
-                if self.cursor in self.selected:
-                    del self.selected[self.cursor]
-                    self._queue_path_draw(self.cursor)
-                elif self.cursor not in self.selected:
-                    self.selected[self.cursor] = True
-                    self._queue_path_draw(self.cursor)
+                self.model.invert_selection(self.cursor)
+                self._queue_path_draw(self.cursor)
 
             return True
 
         return False
+
+    def refresh(self):
+        self.update_item_cache()
+        self.needed_full_redraw = True
+        self.queue_draw()
+
 
 gobject.type_register(FmdIconView)
 
