@@ -4,6 +4,8 @@ import gio
 
 from uxie.search import InteractiveSearch
 from uxie.tree import SelectionListStore
+from uxie.misc import BuilderAware
+from uxie.utils import join_to_file_dir
 
 from .iconview import FmdIconView
 
@@ -16,6 +18,9 @@ def init(activator):
 
         ctx.bind_accel('activate/location', 'Activate location bar',
             '<ctrl>l', FileList.activate_location)
+
+        ctx.bind_accel('history-browser', 'Show history browser',
+            '<alt>e', FileList.show_history)
 
     with activator.on('filelist_active') as ctx:
         ctx.bind_accel('navigate/parent', 'Navigate to parent directory',
@@ -361,3 +366,32 @@ class FileList(object):
             if df: df.cancel()
             self.force_delete_feedback = self.feedback.show(
                 'Files will be deleted permanently', 'warn', 3000)
+
+    def show_history(self):
+        try:
+            h = self.history_browser
+        except AttributeError:
+            h = HistoryViewer()
+
+        h.show(self.view.get_toplevel(), self.history)
+
+
+class HistoryViewer(BuilderAware):
+    def __init__(self):
+        BuilderAware.__init__(self, join_to_file_dir(__file__, 'history.glade'))
+
+    def show(self, parent, history):
+        self.view.set_model(None)
+        self.model.clear()
+
+        for p in history.places:
+            self.model.append(None, (p, p))
+
+        self.view.set_model(self.model)
+
+        w, h = self.view.size_request()
+        self.sw.set_size_request(-1, min(h + 5, 400))
+
+        self.window.resize(*self.window.size_request())
+        self.window.set_transient_for(parent)
+        self.window.show()
