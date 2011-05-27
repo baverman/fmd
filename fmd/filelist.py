@@ -333,9 +333,31 @@ class FileList(object):
             self.feedback.show(str(e), 'error')
         else:
             if len(files) == 1:
-                self.feedback.show('File was deleted', 'done')
+                msg = 'File deletion was requested'
             else:
-                self.feedback.show('Files were deleted', 'done')
+                msg = 'Deletion of selected files was requested'
+
+            self.feedback.show(msg, 'info')
 
     def force_delete(self):
-        self.feedback.show('You are going to delete files', 'error')
+        import time
+        df = getattr(self, 'force_delete_feedback', None)
+        if df and df.is_active() and time.time() - df.start < 1:
+            df.cancel()
+            files = self.get_filelist_from_selection()
+            try:
+                for f in files:
+                    f.delete()
+            except gio.Error, e:
+                self.feedback.show(str(e), 'error')
+            else:
+                if len(files) == 1:
+                    msg = 'File deletion was requested'
+                else:
+                    msg = 'Deletion of selected files was requested'
+
+                self.feedback.show(msg, 'info')
+        else:
+            if df: df.cancel()
+            self.force_delete_feedback = self.feedback.show(
+                'Files will be deleted permanently', 'warn', 3000)

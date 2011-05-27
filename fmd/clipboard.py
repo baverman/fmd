@@ -31,13 +31,14 @@ class Clipboard(object):
     def cut(self, files):
         self._set_data(True, files)
 
-    def _paste_callback(self, clipboard, selection, target_dir):
+    def _paste_callback(self, clipboard, selection, callback):
         is_cut, files = eval(selection.data)
-        print files
         if is_cut:
             clipboard.clear()
 
-    def paste(self, target_dir):
+        callback(is_cut, files)
+
+    def paste(self, callback):
         if not self.is_empty():
             cb = self.get_clipboard()
-            cb.request_contents('fmd/files', self._paste_callback, target_dir)
+            cb.request_contents('fmd/files', self._paste_callback, callback)
