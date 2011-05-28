@@ -16,7 +16,7 @@
     <property name="title" translatable="yes">History</property>
     <property name="role">history</property>
     <property name="modal">True</property>
-    <property name="window_position">center</property>
+    <property name="window_position">center-on-parent</property>
     <property name="type_hint">dialog</property>
     <property name="skip_taskbar_hint">True</property>
     <property name="skip_pager_hint">True</property>
@@ -37,6 +37,7 @@
             <property name="headers_clickable">False</property>
             <property name="search_column">1</property>
             <property name="enable_tree_lines">True</property>
+            <signal name="row-activated" handler="on_view_row_activated" swapped="no"/>
             <child>
               <object class="GtkTreeViewColumn" id="treeviewcolumn1">
                 <property name="title" translatable="yes">column</property>

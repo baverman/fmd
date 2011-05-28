@@ -6,6 +6,7 @@ from uxie.search import InteractiveSearch
 from uxie.tree import SelectionListStore
 from uxie.misc import BuilderAware
 from uxie.utils import join_to_file_dir
+from uxie.actions import Activator
 
 from .iconview import FmdIconView
 
@@ -46,6 +47,9 @@ class History(object):
         self.places = {}
         self.hline = []
         self.current = 0
+
+    def is_empty(self):
+        return not self.places
 
     def add(self, path):
         self.hline = self.hline[:self.current] + [path]
@@ -368,12 +372,16 @@ class FileList(object):
                 'Files will be deleted permanently', 'warn', 3000)
 
     def show_history(self):
+        if self.history.is_empty():
+            self.feedback.show('History is empty', 'warn')
+            return
+
         try:
             h = self.history_browser
         except AttributeError:
             h = self.history_browser = HistoryViewer()
 
-        h.show(self.view.get_toplevel(), self.history)
+        h.show(self, self.history)
 
 
 class HistoryViewer(BuilderAware):
@@ -381,11 +389,25 @@ class HistoryViewer(BuilderAware):
         BuilderAware.__init__(self, join_to_file_dir(__file__, 'history.glade'))
         self.window.realize()
 
+        self.activator = Activator()
+        self.activator.bind_accel('escape', 'Close window', 'Escape', self.on_window_delete_event)
+        self.activator.attach(self.window)
+
     def on_window_delete_event(self, *args):
         self.window.hide()
         return True
 
-    def show(self, parent, history):
+    def on_view_row_activated(self, view, path, column):
+        try:
+            row = self.model[path]
+        except IndexError:
+            return
+
+        self.window.hide()
+        self.filelist.set_uri(row[1])
+
+    def show(self, filelist, history):
+        self.filelist = filelist
         self.view.set_model(None)
         self.model.clear()
 
@@ -419,5 +441,5 @@ class HistoryViewer(BuilderAware):
         self.sw.set_size_request(-1, max(100, min(h + 5, 300)))
 
         self.window.resize(*self.window.size_request())
-        self.window.set_transient_for(parent)
+        self.window.set_transient_for(filelist.view.get_toplevel())
         self.window.show()
