@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk+" version="2.20"/>
+  <!-- interface-naming-policy toplevel-contextual -->
+  <object class="GtkTreeStore" id="model">
+    <columns>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+      <!-- column-name path -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkWindow" id="window">
+    <property name="can_focus">False</property>
+    <property name="border_width">3</property>
+    <property name="title" translatable="yes">History</property>
+    <property name="role">history</property>
+    <property name="modal">True</property>
+    <property name="window_position">center</property>
+    <property name="type_hint">dialog</property>
+    <property name="skip_taskbar_hint">True</property>
+    <property name="skip_pager_hint">True</property>
+    <signal name="delete-event" handler="on_window_delete_event" swapped="no"/>
+    <child>
+      <object class="GtkScrolledWindow" id="sw">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="hscrollbar_policy">never</property>
+        <property name="vscrollbar_policy">automatic</property>
+        <property name="shadow_type">etched-in</property>
+        <child>
+          <object class="GtkTreeView" id="view">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="model">model</property>
+            <property name="headers_visible">False</property>
+            <property name="headers_clickable">False</property>
+            <property name="search_column">1</property>
+            <property name="enable_tree_lines">True</property>
+            <child>
+              <object class="GtkTreeViewColumn" id="treeviewcolumn1">
+                <property name="title" translatable="yes">column</property>
+                <child>
+                  <object class="GtkCellRendererText" id="cellrenderertext1"/>
+                  <attributes>
+                    <attribute name="text">0</attribute>
+                  </attributes>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

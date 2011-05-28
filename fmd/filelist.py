@@ -371,7 +371,7 @@ class FileList(object):
         try:
             h = self.history_browser
         except AttributeError:
-            h = HistoryViewer()
+            h = self.history_browser = HistoryViewer()
 
         h.show(self.view.get_toplevel(), self.history)
 
@@ -379,18 +379,44 @@ class FileList(object):
 class HistoryViewer(BuilderAware):
     def __init__(self):
         BuilderAware.__init__(self, join_to_file_dir(__file__, 'history.glade'))
+        self.window.realize()
+
+    def on_window_delete_event(self, *args):
+        self.window.hide()
+        return True
 
     def show(self, parent, history):
         self.view.set_model(None)
         self.model.clear()
 
-        for p in history.places:
-            self.model.append(None, (p, p))
+        parents = {None:None}
+
+        def setup_model(path):
+            f = gio.File(path=path)
+
+            try:
+                parent_path = f.get_parent().get_path()
+            except AttributeError:
+                parent_path = None
+
+            try:
+                parent_iter = parents[parent_path]
+            except KeyError:
+                setup_model(parent_path)
+                parent_iter = parents[parent_path]
+
+            fname = f.query_info(gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME).get_display_name()
+            parents[path] = self.model.append(parent_iter, (fname, p))
+
+        for p in sorted(history.places, key=lambda r: r.lower()):
+            if p not in parents:
+                setup_model(p)
 
         self.view.set_model(self.model)
+        self.view.expand_all()
 
         w, h = self.view.size_request()
-        self.sw.set_size_request(-1, min(h + 5, 400))
+        self.sw.set_size_request(-1, max(100, min(h + 5, 300)))
 
         self.window.resize(*self.window.size_request())
         self.window.set_transient_for(parent)
