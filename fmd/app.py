@@ -2,8 +2,10 @@ import gtk
 
 from uxie.actions import Activator, ContextActivator
 from uxie.feedback import TextFeedback, FeedbackManager, FeedbackHelper
+
 import filelist
 import clipboard
+import fsutils
 
 class App(object):
     def __init__(self):
@@ -17,7 +19,9 @@ class App(object):
         self.feedback = FeedbackManager()
         self.window.feedback = FeedbackHelper(self.feedback, self.window)
 
-        self.filelist = filelist.FileList(self.clipboard)
+        self.executor = fsutils.Executor()
+
+        self.filelist = filelist.FileList(self.clipboard, self.executor)
         self.window.add(self.filelist.widget)
 
         self.activator = Activator()

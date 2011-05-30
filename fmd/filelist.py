@@ -5,7 +5,7 @@ import gio
 from uxie.search import InteractiveSearch
 from uxie.tree import SelectionListStore
 from uxie.misc import BuilderAware
-from uxie.utils import join_to_file_dir
+from uxie.utils import join_to_file_dir, idle
 from uxie.actions import Activator
 
 from .iconview import FmdIconView
@@ -79,8 +79,9 @@ class History(object):
 
 
 class FileList(object):
-    def __init__(self, clipboard):
+    def __init__(self, clipboard, executor):
         self.clipboard = clipboard
+        self.executor = executor
 
         self.model = SelectionListStore(gtk.gdk.Pixbuf, str, gio.FileInfo, bool)
 
@@ -253,7 +254,7 @@ class FileList(object):
             self.view.set_cursor((0,))
 
         self.view.set_model(self.model)
-        self.view.queue_draw()
+        self.view.refresh(False)
 
         if add_to_history:
             self.history.add(self.current_folder.get_path())
@@ -322,16 +323,23 @@ class FileList(object):
 
         for r in self.model:
             r[3] = True
-        self.view.queue_draw()
-        self.feedback.show('Copy')
+
+        self.view.refresh(False)
+        self.feedback.show('Copied')
 
     def paste(self):
-        self.clipboard.paste(self.current_folder)
+        def on_paste(is_cut, filelist):
+            filelist = [gio.File(uri=r) for r in filelist]
+            if is_cut:
+                self.executor.move(filelist, self.current_folder)
+                for r in self.model:
+                    r[3] = True
+                self.view.refresh(False)
+            else:
+                self.executor.copy(filelist, self.current_folder)
 
-        for r in self.model:
-            r[3] = True
-        self.view.queue_draw()
-        self.feedback.show('Pasted', 'done')
+        self.clipboard.paste(on_paste)
+
 
     def delete(self):
         files = self.get_filelist_from_selection()

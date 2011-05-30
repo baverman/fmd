@@ -147,6 +147,7 @@ class FmdIconView(gtk.DrawingArea):
                 self._draw_item(item, self.model[path], xoffset, earea)
                 processed[path] = True
         else:
+            self.item_draw_queue[:] = []
             self.needed_full_redraw = False
             idx = bisect(self.columns, xoffset + margin) - 1
             for path in self._foreach_path(self.column_first_item[self.columns[idx]]):
@@ -346,8 +347,10 @@ class FmdIconView(gtk.DrawingArea):
 
         return False
 
-    def refresh(self):
-        self.update_item_cache()
+    def refresh(self, full=True):
+        if full:
+            self.update_item_cache()
+
         self.needed_full_redraw = True
         self.queue_draw()
 
