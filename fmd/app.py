@@ -37,9 +37,15 @@ class App(object):
         self.context_activator.map(None, 'cut', '<shift>Delete')
         self.context_activator.map(None, 'paste', '<ctrl>v')
         self.context_activator.map(None, 'paste', '<shift>Insert')
+        self.context_activator.map(None, 'delete', 'Delete')
 
         filelist.init(self.context_activator)
+        self.init_plugins(self.context_activator)
         self.context_activator.attach(self.window)
+
+    def init_plugins(self, activator):
+        from plugins.sync_names import init
+        init(activator)
 
     def open(self, uri):
         self.window.show_all()

@@ -11,40 +11,49 @@ from uxie.actions import Activator
 from .iconview import FmdIconView
 
 def init(activator):
-    activator.add_context('filelist_active', ('filelist',),
+    activator.add_context('filelist-active', 'filelist',
         lambda f: f if f.view.has_focus() else None)
 
-    activator.add_context('filelist_with_selected_files', ('filelist',),
+    activator.add_context('filelist-with-selected-files', 'filelist-active',
         lambda f: f if f.model.selection else None)
 
-    with activator.on('filelist') as ctx:
-        ctx.bind_accel('view/hidden', 'Toggle hidden files',
-            '<ctrl>h', FileList.show_hidden)
+    activator.add_context('filelist-show-hidden', 'filelist',
+        lambda f: f if f.show_hidden else None)
 
+    activator.add_context('filelist-hide-hidden', 'filelist',
+        lambda f: f if not f.show_hidden else None)
+
+    activator.bind_accel('filelist-show-hidden', 'hide-hidden',
+        'Do not show hidden files', '<ctrl>h', FileList.show_hidden)
+
+    activator.bind_accel('filelist-hide-hidden', 'show-hidden',
+        'Show hidden files', '<ctrl>h', FileList.show_hidden)
+
+    with activator.on('filelist') as ctx:
         ctx.bind('paste', 'Paste', FileList.paste)
 
-        ctx.bind_accel('activate/location', 'Activate location bar',
+        ctx.bind_accel('focus-location', 'Activate location bar',
             '<ctrl>l', FileList.activate_location)
 
-        ctx.bind_accel('history-browser', 'Show history browser',
+        ctx.bind_accel('show-history', 'Show history browser',
             '<alt>e', FileList.show_history)
 
-    with activator.on('filelist_active') as ctx:
-        ctx.bind_accel('navigate/parent', 'Navigate to parent directory',
+    with activator.on('filelist-active') as ctx:
+        ctx.bind_accel('goto-parent', 'Navigate to parent directory',
             '<alt>Up', FileList.navigate_parent)
 
-        ctx.bind_accel('navigate/back', 'Navigate back in history',
+        ctx.bind_accel('back', 'Navigate back in history',
             '<alt>Left', FileList.navigate_back)
-        ctx.map('navigate/back', 'BackSpace')
+        ctx.map('back', 'BackSpace')
 
-        ctx.bind_accel('navigate/forward', 'Navigate forward in history',
+        ctx.bind_accel('forward', 'Navigate forward in history',
             '<alt>Right', FileList.navigate_forward)
 
-    with activator.on('filelist_with_selected_files') as ctx:
+    with activator.on('filelist-with-selected-files') as ctx:
         ctx.bind('copy', 'Copy', FileList.copy)
         ctx.bind('cut', 'Cut', FileList.cut)
-        ctx.bind_accel('delete', 'Delete', 'Delete', FileList.delete)
-        ctx.bind_accel('force-delete', 'Force delete',
+        ctx.bind('delete', 'Delete', FileList.delete)
+        ctx.bind_accel('delete-permanently', 'Force delete',
             '<shift>Delete', FileList.force_delete, 10)
 
 
