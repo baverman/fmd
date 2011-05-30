@@ -5,12 +5,18 @@ import gio
 from uxie.search import InteractiveSearch
 from uxie.tree import SelectionListStore
 from uxie.misc import BuilderAware
-from uxie.utils import join_to_file_dir, idle
+from uxie.utils import join_to_file_dir
 from uxie.actions import Activator
 
 from .iconview import FmdIconView
 
 def init(activator):
+    activator.add_context('filelist_active', ('filelist',),
+        lambda f: f if f.view.has_focus() else None)
+
+    activator.add_context('filelist_with_selected_files', ('filelist',),
+        lambda f: f if f.model.selection else None)
+
     with activator.on('filelist') as ctx:
         ctx.bind_accel('view/hidden', 'Toggle hidden files',
             '<ctrl>h', FileList.show_hidden)

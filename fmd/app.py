@@ -29,7 +29,8 @@ class App(object):
         self.activator.bind_accel('window/close', 'Close window', '<ctrl>w', self.quit)
         self.activator.attach(self.window)
 
-        self.context_activator = ContextActivator(self)
+        self.context_activator = ContextActivator()
+        self.context_activator.add_context('filelist', None, lambda: self.filelist)
         self.context_activator.map(None, 'copy', '<ctrl>c')
         self.context_activator.map(None, 'copy', '<ctrl>Insert')
         self.context_activator.map(None, 'cut', '<ctrl>x')
@@ -46,16 +47,6 @@ class App(object):
 
     def quit(self, *args):
         gtk.main_quit()
-
-    def get_context(self, window, ctx):
-        if ctx == 'filelist':
-            return self.filelist
-        elif ctx == 'filelist_active' and self.filelist.view.has_focus():
-            return self.filelist
-        elif ctx == 'filelist_with_selected_files' and self.filelist.model.selection:
-            return self.filelist
-
-        return None
 
     def show_feedback(self, text, category='info'):
         self.feedback.add_feedback(self.window, TextFeedback(text, category))
