@@ -160,12 +160,39 @@ class FileList(object):
                 self.view.unselect_all()
 
     def set_uri(self, uri, add_to_history=True, cursor=None, scroll=None):
-        self.uri_entry.set_text(uri)
-        self.update(uri, add_to_history, cursor, scroll)
+        folder = gio.file_parse_name(uri)
+        file_info = folder.query_info('standard::*')
+        ft = file_info.get_file_type()
 
-    def update(self, uri, add_to_history=True, cursor=None, scroll=None):
+        if ft == gio.FILE_TYPE_DIRECTORY:
+            uri = folder.get_path() or folder.get_uri()
+        elif ft in (gio.FILE_TYPE_MOUNTABLE, gio.FILE_TYPE_SHORTCUT):
+            uri = file_info.get_attribute_as_string(gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
+            folder = gio.File(uri=uri)
+        else:
+            raise Exception('Unknown file type %s %s' % (ft, folder.get_uri()))
+
+        self.uri_entry.set_text(uri)
+
+        if self.current_folder:
+            self.history.update(self.current_folder.get_uri(), self.view.get_cursor(),
+                self.sw.props.hadjustment.value)
+
+        self.current_folder = folder
+        self.setup_monitor(folder)
+
+        self.fill()
         self.view.grab_focus()
-        self.fill(uri, add_to_history, cursor, scroll)
+
+        if cursor:
+            self.view.set_cursor(cursor)
+        else:
+            self.view.set_cursor((0,))
+
+        self.view.refresh(False)
+
+        if add_to_history:
+            self.history.add(folder.get_uri())
 
     def get_pixbuf(self, info):
         key = info.get_icon()
@@ -231,18 +258,10 @@ class FileList(object):
             self.remove_file(file)
             self.add_file(other_file)
 
-    def fill(self, uri, add_to_history=True, cursor=None, scroll=None):
+    def fill(self):
         self.view.set_model(None)
 
-        if self.current_folder:
-            self.history.update(self.current_folder.get_path(), self.view.get_cursor(),
-                self.sw.props.hadjustment.value)
-
-
-        self.current_folder = gio.file_parse_name(uri)
         enumerator = self.current_folder.enumerate_children('standard::*')
-
-        self.setup_monitor(self.current_folder)
 
         infos = []
         while True:
@@ -264,38 +283,39 @@ class FileList(object):
         for _, _, name, info in sorted(infos):
             self.model.append((self.get_pixbuf(info), name, info, True))
 
-        if cursor:
-            self.view.set_cursor(cursor)
-        else:
-            self.view.set_cursor((0,))
-
         self.view.set_model(self.model)
-        self.view.refresh(False)
-
-        if add_to_history:
-            self.history.add(self.current_folder.get_path())
 
     def on_uri_entry_activate(self, entry):
-        self.update(entry.get_text())
+        self.set_uri(entry.get_text())
 
-    def on_item_activated(self, view, path):
-        row = self.model[path]
-        fi = row[2]
-        ft = fi.get_file_type()
-        cfile = self.current_folder.get_child(fi.get_name())
+    def set_uri_from_file_info(self, file_info, cfile):
+        ft = file_info.get_file_type()
 
         if ft == gio.FILE_TYPE_DIRECTORY:
-            self.set_uri(cfile.get_path())
+            self.set_uri(cfile.get_path() or cfile.get_uri())
         elif ft in (gio.FILE_TYPE_MOUNTABLE, gio.FILE_TYPE_SHORTCUT):
-            uri = fi.get_attribute_as_string(gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
+            uri = file_info.get_attribute_as_string(gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
             self.set_uri(uri)
         elif ft == gio.FILE_TYPE_REGULAR:
-            app_info = gio.app_info_get_default_for_type(fi.get_content_type(), False)
+            app_info = cfile.query_default_handler()
             if app_info:
                 os.chdir(self.current_folder.get_path())
                 app_info.launch([cfile])
         else:
             print ft, cfile.get_uri()
+
+    def on_item_activated(self, view, path):
+        row = self.model[path]
+        fi = row[2]
+        cfile = self.current_folder.get_child(fi.get_name())
+        ft = fi.get_file_type()
+        if ft == gio.FILE_TYPE_REGULAR:
+            app_info = cfile.query_default_handler()
+            if app_info:
+                os.chdir(self.current_folder.get_path())
+                app_info.launch([cfile])
+        else:
+            self.set_uri(cfile.get_uri())
 
     def navigate_parent(self):
         parent = self.current_folder.get_parent()
@@ -319,7 +339,7 @@ class FileList(object):
 
     def show_hidden(self):
         self.show_hidden = not self.show_hidden
-        self.fill(self.current_folder.get_path(), False)
+        self.fill()
 
     def get_filelist_from_selection(self):
         result = []
@@ -416,7 +436,7 @@ class FileList(object):
 class HistoryViewer(BuilderAware):
     def __init__(self):
         BuilderAware.__init__(self, join_to_file_dir(__file__, 'history.glade'))
-        self.window.realize()
+        self.view.realize()
 
         self.activator = Activator()
         self.activator.bind_accel('escape', 'Close window', 'Escape', self.on_window_delete_event)
@@ -442,11 +462,11 @@ class HistoryViewer(BuilderAware):
 
         parents = {None:None}
 
-        def setup_model(path):
-            f = gio.File(path=path)
+        def setup_model(uri):
+            f = gio.File(uri=uri)
 
             try:
-                parent_path = f.get_parent().get_path()
+                parent_path = f.get_parent().get_uri()
             except AttributeError:
                 parent_path = None
 
@@ -457,11 +477,11 @@ class HistoryViewer(BuilderAware):
                 parent_iter = parents[parent_path]
 
             fname = f.query_info(gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME).get_display_name()
-            parents[path] = self.model.append(parent_iter, (fname, p))
+            parents[uri] = self.model.append(parent_iter, (fname, uri))
 
-        for p in sorted(history.places, key=lambda r: r.lower()):
-            if p not in parents:
-                setup_model(p)
+        for u in sorted(history.places, key=lambda r: r.lower()):
+            if u not in parents:
+                setup_model(u)
 
         self.view.set_model(self.model)
         self.view.expand_all()

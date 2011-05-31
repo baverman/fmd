@@ -1,10 +1,10 @@
 def run():
-    import sys, os.path
+    import sys, os
 
     try:
         uri = sys.argv[1]
     except IndexError:
-        uri = os.path.expanduser('~')
+        uri = os.getcwd()
 
 
     import gtk

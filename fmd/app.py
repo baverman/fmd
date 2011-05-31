@@ -47,6 +47,9 @@ class App(object):
         from plugins.sync_names import init
         init(activator)
 
+        from plugins.places import init
+        init(activator)
+
     def open(self, uri):
         self.window.show_all()
         self.filelist.set_uri(uri)
