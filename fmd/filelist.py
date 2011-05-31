@@ -168,14 +168,15 @@ class FileList(object):
         self.fill(uri, add_to_history, cursor, scroll)
 
     def get_pixbuf(self, info):
-        content_type = info.get_attribute_as_string('standard::content-type')
+        key = info.get_icon()
+
         try:
-            return self.icon_cache[content_type]
+            return self.icon_cache[key]
         except KeyError:
             pass
 
         theme = gtk.icon_theme_get_default()
-        icon_info = theme.lookup_by_gicon(gio.content_type_get_icon(content_type), 16, 0)
+        icon_info = theme.lookup_by_gicon(key, 16, 0)
 
         if not icon_info:
             icon_info = theme.lookup_icon('gtk-file', 16, 0)
@@ -185,7 +186,7 @@ class FileList(object):
         else:
             pixbuf = None
 
-        self.icon_cache[content_type] = pixbuf
+        self.icon_cache[key] = pixbuf
         return pixbuf
 
     def setup_monitor(self, file):
@@ -281,15 +282,20 @@ class FileList(object):
         row = self.model[path]
         fi = row[2]
         ft = fi.get_file_type()
-        cfile = self.current_folder.get_child_for_display_name(row[1])
+        cfile = self.current_folder.get_child(fi.get_name())
 
         if ft == gio.FILE_TYPE_DIRECTORY:
             self.set_uri(cfile.get_path())
+        elif ft in (gio.FILE_TYPE_MOUNTABLE, gio.FILE_TYPE_SHORTCUT):
+            uri = fi.get_attribute_as_string(gio.FILE_ATTRIBUTE_STANDARD_TARGET_URI)
+            self.set_uri(uri)
         elif ft == gio.FILE_TYPE_REGULAR:
             app_info = gio.app_info_get_default_for_type(fi.get_content_type(), False)
             if app_info:
                 os.chdir(self.current_folder.get_path())
                 app_info.launch([cfile])
+        else:
+            print ft, cfile.get_uri()
 
     def navigate_parent(self):
         parent = self.current_folder.get_parent()
