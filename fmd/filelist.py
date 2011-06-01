@@ -4,9 +4,6 @@ import gio
 
 from uxie.search import InteractiveSearch
 from uxie.tree import SelectionListStore
-from uxie.misc import BuilderAware
-from uxie.utils import join_to_file_dir
-from uxie.actions import Activator
 
 from .iconview import FmdIconView
 
@@ -34,9 +31,6 @@ def init(activator):
 
         ctx.bind_accel('focus-location', 'Activate location bar',
             '<ctrl>l', FileList.activate_location)
-
-        ctx.bind_accel('show-history', 'Show history browser',
-            '<alt>e', FileList.show_history)
 
     with activator.on('filelist-active') as ctx:
         ctx.bind_accel('goto-parent', 'Navigate to parent directory',
@@ -418,76 +412,3 @@ class FileList(object):
             if df: df.cancel()
             self.force_delete_feedback = self.feedback.show(
                 'Files will be deleted permanently', 'warn', 3000)
-
-    def show_history(self):
-        if self.history.is_empty():
-            self.feedback.show('History is empty', 'warn')
-            return
-
-        try:
-            h = self.history_browser
-        except AttributeError:
-            h = self.history_browser = HistoryViewer()
-
-        h.show(self, self.history)
-
-
-class HistoryViewer(BuilderAware):
-    def __init__(self):
-        BuilderAware.__init__(self, join_to_file_dir(__file__, 'history.glade'))
-        self.view.realize()
-
-        self.activator = Activator()
-        self.activator.bind_accel('escape', 'Close window', 'Escape', self.on_window_delete_event)
-        self.activator.attach(self.window)
-
-    def on_window_delete_event(self, *args):
-        self.window.hide()
-        return True
-
-    def on_view_row_activated(self, view, path, column):
-        try:
-            row = self.model[path]
-        except IndexError:
-            return
-
-        self.window.hide()
-        self.filelist.set_uri(row[1])
-
-    def show(self, filelist, history):
-        self.filelist = filelist
-        self.view.set_model(None)
-        self.model.clear()
-
-        parents = {None:None}
-
-        def setup_model(uri):
-            f = gio.File(uri=uri)
-
-            try:
-                parent_path = f.get_parent().get_uri()
-            except AttributeError:
-                parent_path = None
-
-            try:
-                parent_iter = parents[parent_path]
-            except KeyError:
-                setup_model(parent_path)
-                parent_iter = parents[parent_path]
-
-            fname = f.query_info(gio.FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME).get_display_name()
-            parents[uri] = self.model.append(parent_iter, (fname, uri))
-
-        for u in sorted(history.places, key=lambda r: r.lower()):
-            if u not in parents:
-                setup_model(u)
-
-        self.view.set_model(self.model)
-        self.view.expand_all()
-
-        w, h = self.view.size_request()
-        self.sw.set_size_request(-1, max(100, min(h + 5, 300)))
-
-        self.window.resize(*self.window.size_request())
-        self.window.set_transient_for(filelist.view.get_toplevel())
-        self.window.show()

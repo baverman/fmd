@@ -48,10 +48,11 @@ class App(object):
         self.pm.ready('filelist', self.filelist)
 
     def init_plugins(self, pm):
-        from plugins import sync_names, places, info
+        from plugins import sync_names, places, info, history
         pm.add_plugin(sync_names)
         pm.add_plugin(places)
         pm.add_plugin(info)
+        pm.add_plugin(history)
 
     def open(self, uri):
         self.window.show_all()
