@@ -344,8 +344,7 @@ class FileList(object):
     def get_filelist_from_selection(self):
         result = []
         for path in self.model.selection:
-            result.append(self.current_folder.get_child_for_display_name(
-                self.model[path][1]))
+            result.append(self.current_folder.get_child(self.model[path][2].get_name()))
 
         return result
 
