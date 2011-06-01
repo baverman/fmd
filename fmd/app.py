@@ -2,6 +2,7 @@ import gtk
 
 from uxie.actions import Activator, ContextActivator
 from uxie.feedback import TextFeedback, FeedbackManager, FeedbackHelper
+from uxie.plugins import Manager as PluginManager
 
 import filelist
 import clipboard
@@ -19,11 +20,6 @@ class App(object):
         self.feedback = FeedbackManager()
         self.window.feedback = FeedbackHelper(self.feedback, self.window)
 
-        self.executor = fsutils.Executor()
-
-        self.filelist = filelist.FileList(self.clipboard, self.executor)
-        self.window.add(self.filelist.widget)
-
         self.activator = Activator()
         self.activator.bind_accel('application/quit', 'Quit', '<ctrl>q', self.quit)
         self.activator.bind_accel('window/close', 'Close window', '<ctrl>w', self.quit)
@@ -39,16 +35,23 @@ class App(object):
         self.context_activator.map(None, 'paste', '<shift>Insert')
         self.context_activator.map(None, 'delete', 'Delete')
 
+        self.pm = PluginManager(self.context_activator)
+
         filelist.init(self.context_activator)
-        self.init_plugins(self.context_activator)
+        self.init_plugins(self.pm)
         self.context_activator.attach(self.window)
 
-    def init_plugins(self, activator):
-        from plugins.sync_names import init
-        init(activator)
+        self.executor = fsutils.Executor()
 
-        from plugins.places import init
-        init(activator)
+        self.filelist = filelist.FileList(self.clipboard, self.executor)
+        self.window.add(self.filelist.widget)
+        self.pm.ready('filelist', self.filelist)
+
+    def init_plugins(self, pm):
+        from plugins import sync_names, places, info
+        pm.add_plugin(sync_names)
+        pm.add_plugin(places)
+        pm.add_plugin(info)
 
     def open(self, uri):
         self.window.show_all()

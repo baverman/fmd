@@ -1,4 +1,4 @@
-def init(activator):
+def init(activator, pm):
     activator.add_context('sync-names', 'filelist-active', context)
 
     activator.bind_accel('sync-names', 'sync-names', 'Synchronize filenames',
