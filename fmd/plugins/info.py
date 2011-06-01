@@ -11,7 +11,6 @@ def init(activator, pm):
 def filelist_ready(filelist):
     filelist.model.connect('selection-changed', on_selection_changed)
 
-
 def fill_widget(widget, model, selection):
     size = sum(model[r][2].get_size() for r in selection)
     widget.set_text('Size of selected file(s)\n%s' % human_size(size))
