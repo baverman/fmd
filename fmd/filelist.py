@@ -434,7 +434,7 @@ class FileList(object):
             dialog = InputDialog('Rename', self.widget.get_toplevel())
 
             fi = self.model[self.model.selection.keys()[0]][2]
-            fname = fi.get_edit_name()
+            fname = fi.get_edit_name().decode('utf-8')
 
             dialog.entry.set_text(fname)
 
