@@ -17,8 +17,7 @@ class App(object):
         self.wg.add_window(self.window)
 
         self.clipboard = clipboard.Clipboard()
-        self.feedback = FeedbackManager()
-        self.window.feedback = FeedbackHelper(self.feedback, self.window)
+        self.window.feedback = self.feedback = FeedbackManager()
 
         self.activator = Activator()
         self.activator.bind_accel('application/quit', 'Quit', '<ctrl>q', self.quit)
@@ -60,6 +59,3 @@ class App(object):
 
     def quit(self, *args):
         gtk.main_quit()
-
-    def show_feedback(self, text, category='info'):
-        self.feedback.add_feedback(self.window, TextFeedback(text, category))

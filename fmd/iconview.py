@@ -5,6 +5,8 @@ import gobject
 from gtk.gdk import Rectangle, CONTROL_MASK, SHIFT_MASK
 from gtk import keysyms
 
+from uxie.utils import send_focus_change
+
 class DrawItem(object):
     __slots__ = ['ix', 'iy', 'iwidth', 'iheight',
         'tx', 'ty', 'twidth', 'theight', 'width', 'height', 'x', 'y']
@@ -109,6 +111,33 @@ class FmdIconView(gtk.DrawingArea):
 
     def get_cursor(self):
         return self.cursor
+
+    def start_editing(self, path):
+        event = gtk.gdk.Event(gtk.gdk.NOTHING)
+        item = self.item_cache[path]
+        xoffset = int(self._hadj.value)
+        area = Rectangle(item.x + item.tx - xoffset, item.y + item.ty, item.twidth, item.theight)
+        path = ','.join(map(str, path))
+
+        entry = self.text_renderer.start_editing(event, self, path, area, area, 0)
+        entry.start_editing(event)
+
+        window = gtk.Window(gtk.WINDOW_POPUP)
+        window.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_UTILITY)
+        window.add(entry)
+        entry.show()
+        entry.realize()
+        entry.size_allocate(area)
+
+        win = self.window
+        window.window.reparent(win, 0, 0)
+        entry.size_allocate(area)
+        window.resize(item.twidth, item.theight)
+        window.move(item.x + item.tx - xoffset, item.y + item.ty)
+        window.show()
+
+        send_focus_change(entry, True)
+        return entry
 
     def _draw_item(self, item, row, xoffset, earea):
         flags = 0

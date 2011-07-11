@@ -4,6 +4,9 @@ import gio
 
 from uxie.search import InteractiveSearch
 from uxie.tree import SelectionListStore
+from uxie.feedback import FeedbackHelper
+from uxie.misc import InputDialog
+from uxie.utils import idle
 
 from .iconview import FmdIconView
 
@@ -32,6 +35,9 @@ def init(activator):
         ctx.bind_accel('focus-location', 'Activate location bar',
             '<ctrl>l', FileList.activate_location)
 
+        ctx.bind_accel('create-directory', 'Create directory',
+            '<ctrl><shift>n', FileList.mkdir)
+
     with activator.on('filelist-active') as ctx:
         ctx.bind_accel('goto-parent', 'Navigate to parent directory',
             '<alt>Up', FileList.navigate_parent)
@@ -49,6 +55,8 @@ def init(activator):
         ctx.bind('delete', 'Delete', FileList.delete)
         ctx.bind_accel('delete-permanently', 'Force delete',
             '<shift>Delete', FileList.force_delete, 10)
+
+        ctx.bind_accel('rename', 'Rename', 'F2', FileList.rename)
 
 
 class History(object):
@@ -116,6 +124,8 @@ class FileList(object):
 
         text_cell = gtk.CellRendererText()
         view.text_renderer = text_cell
+        text_cell.props.mode = gtk.CELL_RENDERER_MODE_EDITABLE
+        text_cell.props.editable = True
         view.set_attributes(text_cell, text=1, sensitive=3)
 
         self.sw.add(view)
@@ -132,7 +142,13 @@ class FileList(object):
 
     @property
     def feedback(self):
-        return self.view.get_toplevel().feedback
+        try:
+            return self._feedback
+        except AttributeError:
+            pass
+
+        self._feedback = FeedbackHelper(self.view.get_toplevel().feedback, self.view.window)
+        return self._feedback
 
     def _search(self, text, direction, skip):
         idx = sidx = self.view.get_cursor()[0] if self.view.get_cursor() else 0
@@ -412,3 +428,44 @@ class FileList(object):
             if df: df.cancel()
             self.force_delete_feedback = self.feedback.show(
                 'Files will be deleted permanently', 'warn', 3000)
+
+    def rename(self):
+        if len(self.model.selection) == 1:
+            dialog = InputDialog('Rename', self.widget.get_toplevel())
+
+            fi = self.model[self.model.selection.keys()[0]][2]
+            fname = fi.get_edit_name()
+
+            dialog.entry.set_text(fname)
+
+            fname_without_extension, sep, _ = fname.rpartition('.')
+            if sep and fname_without_extension:
+                idle(dialog.entry.select_region, 0, len(fname_without_extension))
+
+            if dialog.run() == gtk.RESPONSE_ACCEPT:
+                newname = dialog.entry.get_text()
+                gfile = self.current_folder.get_child(fi.get_name())
+                try:
+                    gfile.set_display_name(newname)
+                except Exception, e:
+                    self.feedback.show(str(e), 'error')
+                else:
+                    self.feedback.show('Renamed', 'done')
+
+            dialog.destroy()
+
+    def mkdir(self):
+        dialog = InputDialog('New directory', self.widget.get_toplevel())
+        dialog.entry.set_text('NewDirectory')
+
+        if dialog.run() == gtk.RESPONSE_ACCEPT:
+            name = dialog.entry.get_text()
+            gfile = self.current_folder.get_child_for_display_name(name)
+            try:
+                gfile.make_directory()
+            except Exception, e:
+                self.feedback.show(str(e), 'error')
+            else:
+                self.feedback.show('Directory created', 'done')
+
+        dialog.destroy()
