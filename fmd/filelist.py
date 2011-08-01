@@ -1,6 +1,8 @@
 import os
 import gtk
 import gio
+import glib
+import hashlib
 
 from uxie.search import InteractiveSearch
 from uxie.tree import SelectionListStore
@@ -314,16 +316,38 @@ class FileList(object):
         else:
             print ft, cfile.get_uri()
 
+    def process_archive(self, fi):
+        ct = fi.get_content_type()
+
+        if ct == 'application/x-rar':
+            folder = gio.file_parse_name('/tmp/fmd-archive-cache/' + fi.get_display_name())
+            if not folder.query_exists():
+                folder.make_directory_with_parents()
+
+            f = self.current_folder.get_child(fi.get_name())
+
+            pid, _, _, _ = glib.spawn_async(['unrar', 'x', '-y', f.get_path()],
+                working_directory=folder.get_path(), flags=glib.SPAWN_SEARCH_PATH)
+
+            self.set_uri(folder.get_uri())
+
+        else:
+            print ct
+            return False
+
+        return True
+
     def on_item_activated(self, view, path):
         row = self.model[path]
         fi = row[2]
         cfile = self.current_folder.get_child(fi.get_name())
         ft = fi.get_file_type()
         if ft == gio.FILE_TYPE_REGULAR:
-            app_info = gio.app_info_get_default_for_type(fi.get_content_type(), False)
-            if app_info:
-                os.chdir(self.current_folder.get_path())
-                app_info.launch([cfile])
+            if not self.process_archive(fi):
+                app_info = gio.app_info_get_default_for_type(fi.get_content_type(), False)
+                if app_info:
+                    os.chdir(self.current_folder.get_path())
+                    app_info.launch([cfile])
         else:
             self.set_uri(cfile.get_uri())
 
@@ -406,6 +430,22 @@ class FileList(object):
 
             self.feedback.show(msg, 'info')
 
+    def rec_delete(self, f):
+        ft = f.query_file_type(gio.FILE_QUERY_INFO_NOFOLLOW_SYMLINKS)
+        if ft == gio.FILE_TYPE_DIRECTORY:
+            enumerator = f.enumerate_children('standard::name')
+
+            while True:
+                fi = enumerator.next_file()
+                if not fi:
+                    break
+
+                self.rec_delete(f.get_child(fi.get_name()))
+
+            enumerator.close()
+
+        f.delete()
+
     def force_delete(self):
         import time
         df = getattr(self, 'force_delete_feedback', None)
@@ -414,7 +454,8 @@ class FileList(object):
             files = self.get_filelist_from_selection()
             try:
                 for f in files:
-                    f.delete()
+                    self.rec_delete(f)
+
             except gio.Error, e:
                 self.feedback.show(str(e), 'error')
             else:
