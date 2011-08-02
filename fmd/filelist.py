@@ -320,20 +320,23 @@ class FileList(object):
         ct = fi.get_content_type()
 
         if ct == 'application/x-rar':
-            folder = gio.file_parse_name('/tmp/fmd-archive-cache/' + fi.get_display_name())
-            if not folder.query_exists():
-                folder.make_directory_with_parents()
-
-            f = self.current_folder.get_child(fi.get_name())
-
-            pid, _, _, _ = glib.spawn_async(['unrar', 'x', '-y', f.get_path()],
-                working_directory=folder.get_path(), flags=glib.SPAWN_SEARCH_PATH)
-
-            self.set_uri(folder.get_uri())
-
+            cmd = ['unrar', 'x', '-y']
+        elif ct == 'application/zip':
+            cmd = ['unzip', '-o']
         else:
             print ct
             return False
+
+        folder = gio.file_parse_name('/tmp/fmd-archive-cache/' + fi.get_display_name())
+        if not folder.query_exists():
+            folder.make_directory_with_parents()
+
+        cmd.append(self.current_folder.get_child(fi.get_name()).get_path())
+
+        pid, _, _, _ = glib.spawn_async(cmd,
+            working_directory=folder.get_path(), flags=glib.SPAWN_SEARCH_PATH)
+
+        self.set_uri(folder.get_uri())
 
         return True
 
