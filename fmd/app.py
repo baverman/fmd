@@ -1,7 +1,7 @@
 import gtk
 
 from uxie.actions import Activator, ContextActivator
-from uxie.feedback import TextFeedback, FeedbackManager, FeedbackHelper
+from uxie.floating import Manager as FeedbackManager
 from uxie.plugins import Manager as PluginManager
 
 import filelist

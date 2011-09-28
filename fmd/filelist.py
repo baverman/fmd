@@ -6,7 +6,7 @@ import hashlib
 
 from uxie.search import InteractiveSearch
 from uxie.tree import SelectionListStore
-from uxie.feedback import FeedbackHelper
+from uxie.floating import FeedbackHelper
 from uxie.misc import InputDialog
 from uxie.utils import idle
 
@@ -132,7 +132,7 @@ class FileList(object):
 
         self.sw.add(view)
 
-        self.isearch = InteractiveSearch(self._search)
+        self.isearch = InteractiveSearch(self._search, self._search_widget_created)
         self.isearch.attach(view)
 
         self.icon_cache = {}
@@ -142,6 +142,9 @@ class FileList(object):
 
         self.monitor = None
 
+    def _search_widget_created(self, widget):
+        self.feedback.show_widget(widget, 10, 0, False)
+
     @property
     def feedback(self):
         try:
@@ -149,7 +152,7 @@ class FileList(object):
         except AttributeError:
             pass
 
-        self._feedback = FeedbackHelper(self.view.get_toplevel().feedback, self.view.window)
+        self._feedback = FeedbackHelper(self.view.get_toplevel().feedback, self.view)
         return self._feedback
 
     def _search(self, text, direction, skip):
@@ -377,6 +380,13 @@ class FileList(object):
     def show_hidden(self):
         self.show_hidden = not self.show_hidden
         self.fill()
+
+    def get_cursor_for_name(self, name):
+        for row in self.model:
+            if row[1] == name:
+                return row.path
+
+        return None
 
     def get_filelist_from_selection(self):
         result = []

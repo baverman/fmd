@@ -18,7 +18,7 @@ def fill_widget(widget, model, selection):
 def on_selection_changed(model, selection):
     feedback = info_bar[0]
     if feedback:
-        fill_widget(feedback.widget, model, selection)
+        fill_widget(feedback.label, model, selection)
 
 info_bar = [None]
 
@@ -30,11 +30,17 @@ def show_info(filelist):
             info_bar[0] = None
             return
 
-    widget = gtk.Label()
-    widget.set_padding(10, 5)
-    widget.set_justify(gtk.JUSTIFY_RIGHT)
+    widget = gtk.EventBox()
+    frame = gtk.Frame()
+    widget.add(frame)
 
-    fill_widget(widget, filelist.model, filelist.model.selection)
+    label = gtk.Label()
+    label.set_padding(10, 5)
+    label.set_justify(gtk.JUSTIFY_RIGHT)
+    frame.add(label)
+
+    fill_widget(label, filelist.model, filelist.model.selection)
 
     feedback = filelist.feedback.show_widget(widget)
+    feedback.label = label
     info_bar[0] = feedback

@@ -32,5 +32,9 @@ def sync_names(filelist):
     target = filelist.current_folder.get_child_for_display_name(name2 + ext1)
 
     source.move(target)
-    filelist.view.refresh()
+
+    filelist.fill()
+    filelist.view.set_cursor(filelist.get_cursor_for_name(fi2.get_display_name()))
+    filelist.view.refresh(False)
+
     filelist.feedback.show('Synced', 'done')

@@ -28,7 +28,7 @@ class DrawItem(object):
         self.width = self.tx + self.twidth
 
 
-class FmdIconView(gtk.DrawingArea):
+class FmdIconView(gtk.EventBox):
     __gsignals__ = {
         "expose-event": "override",
         "realize": "override",
@@ -46,7 +46,7 @@ class FmdIconView(gtk.DrawingArea):
     }
 
     def __init__(self):
-        gtk.DrawingArea.__init__(self)
+        gtk.EventBox.__init__(self)
 
         self.set_can_focus(True)
         self.add_events(gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.KEY_PRESS_MASK)
