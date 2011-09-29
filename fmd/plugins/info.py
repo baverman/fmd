@@ -2,10 +2,10 @@ import gtk
 
 from uxie.utils import human_size
 
-def init(activator, pm):
-    pm.on_ready('filelist', filelist_ready)
+def init(injector):
+    injector.on_ready('filelist', filelist_ready)
 
-    activator.bind_accel('filelist-with-selected-files', 'show-info', 'Show info box',
+    injector.bind_accel('filelist-with-selected-files', 'show-info', 'Show info box',
         '<alt>i', show_info)
 
 def filelist_ready(filelist):

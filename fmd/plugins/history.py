@@ -4,8 +4,8 @@ from uxie.misc import BuilderAware
 from uxie.actions import Activator
 from uxie.utils import join_to_file_dir
 
-def init(activator, pm):
-    activator.bind_accel('filelist', 'show-history', 'Show history browser',
+def init(injector):
+    injector.bind_accel('filelist', 'show-history', 'Show history browser',
         '<alt>e', show_history)
 
 

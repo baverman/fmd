@@ -1,7 +1,7 @@
-def init(activator, pm):
-    activator.add_context('sync-names', 'filelist-active', context)
+def init(injector):
+    injector.add_context('sync-names', 'filelist-active', context)
 
-    activator.bind_accel('sync-names', 'sync-names', 'Synchronize filenames',
+    injector.bind_accel('sync-names', 'sync-names', 'Synchronize filenames',
         '<ctrl>s', sync_names)
 
 def context(filelist):

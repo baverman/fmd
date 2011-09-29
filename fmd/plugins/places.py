@@ -6,8 +6,8 @@ from uxie.actions import Activator
 
 dialog = [None]
 
-def init(activator, pm):
-    activator.bind_accel('filelist', 'places', 'Show places browser', '<alt>p', show_places)
+def init(injector):
+    injector.bind_accel('filelist', 'places', 'Show places browser', '<alt>p', show_places)
 
 def show_places(filelist):
     if not dialog[0]:
