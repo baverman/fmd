@@ -1,6 +1,6 @@
 import gtk
 
-from uxie.actions import Activator, ContextActivator
+from uxie.actions import Activator
 from uxie.floating import Manager as FeedbackManager
 from uxie.plugins import Manager as PluginManager
 
@@ -20,25 +20,24 @@ class App(object):
         self.window.feedback = self.feedback = FeedbackManager()
 
         self.activator = Activator()
-        self.activator.bind_accel('application/quit', 'Quit', '<ctrl>q', self.quit)
-        self.activator.bind_accel('window/close', 'Close window', '<ctrl>w', self.quit)
-        self.activator.attach(self.window)
+        self.activator.add_context('filelist', None, lambda: self.filelist)
+        self.activator.map(None, 'copy', '<ctrl>c')
+        self.activator.map(None, 'copy', '<ctrl>Insert')
+        self.activator.map(None, 'cut', '<ctrl>x')
+        self.activator.map(None, 'cut', '<shift>Delete')
+        self.activator.map(None, 'paste', '<ctrl>v')
+        self.activator.map(None, 'paste', '<shift>Insert')
+        self.activator.map(None, 'delete', 'Delete')
 
-        self.context_activator = ContextActivator()
-        self.context_activator.add_context('filelist', None, lambda: self.filelist)
-        self.context_activator.map(None, 'copy', '<ctrl>c')
-        self.context_activator.map(None, 'copy', '<ctrl>Insert')
-        self.context_activator.map(None, 'cut', '<ctrl>x')
-        self.context_activator.map(None, 'cut', '<shift>Delete')
-        self.context_activator.map(None, 'paste', '<ctrl>v')
-        self.context_activator.map(None, 'paste', '<shift>Insert')
-        self.context_activator.map(None, 'delete', 'Delete')
+        self.activator.bind_accel('window', 'quit', '_Quit', '<ctrl>q', self.quit)
+        self.activator.bind_accel('window', 'close-window',
+            '_Window/_Close', '<ctrl>w', self.quit)
 
-        self.pm = PluginManager(self.context_activator)
+        self.pm = PluginManager(self.activator)
 
-        filelist.init(self.context_activator)
+        filelist.init(self.activator)
         self.init_plugins(self.pm)
-        self.context_activator.attach(self.window)
+        self.activator.attach(self.window)
 
         self.executor = fsutils.Executor()
 

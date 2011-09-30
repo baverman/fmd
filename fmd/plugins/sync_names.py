@@ -1,8 +1,6 @@
 def init(injector):
     injector.add_context('sync-names', 'filelist-active', context)
-
-    injector.bind_accel('sync-names', 'sync-names', 'Synchronize filenames',
-        '<ctrl>s', sync_names)
+    injector.bind_accel('sync-names', 'sync-names', '_Utils/_Sync names', '<ctrl>s', sync_names)
 
 def context(filelist):
     return filelist if len(filelist.model.selection) == 2 else None

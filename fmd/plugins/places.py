@@ -7,7 +7,7 @@ from uxie.actions import Activator
 dialog = [None]
 
 def init(injector):
-    injector.bind_accel('filelist', 'places', 'Show places browser', '<alt>p', show_places)
+    injector.bind_accel('filelist', 'show-places', '_Window/_Places', '<alt>p', show_places)
 
 def show_places(filelist):
     if not dialog[0]:
@@ -20,7 +20,7 @@ class Places(BuilderAware):
         BuilderAware.__init__(self, join_to_file_dir(__file__, 'places.glade'))
 
         self.activator = Activator()
-        self.activator.bind_accel('escape', 'Close window', 'Escape', self.on_window_delete_event)
+        self.activator.bind_accel('window', 'escape', '_Close', 'Escape', self.on_window_delete_event)
         self.activator.attach(self.window)
 
         self.view.realize()

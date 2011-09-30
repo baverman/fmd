@@ -4,9 +4,8 @@ from uxie.utils import human_size
 
 def init(injector):
     injector.on_ready('filelist', filelist_ready)
-
-    injector.bind_accel('filelist-with-selected-files', 'show-info', 'Show info box',
-        '<alt>i', show_info)
+    injector.bind_accel('filelist-with-selected-files', 'show-info',
+        '_View/Show _info', '<alt>i', show_info)
 
 def filelist_ready(filelist):
     filelist.model.connect('selection-changed', on_selection_changed)

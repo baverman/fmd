@@ -5,8 +5,7 @@ from uxie.actions import Activator
 from uxie.utils import join_to_file_dir
 
 def init(injector):
-    injector.bind_accel('filelist', 'show-history', 'Show history browser',
-        '<alt>e', show_history)
+    injector.bind_accel('filelist', 'show-history', '_Window/_History', '<alt>e', show_history)
 
 
 history_browser = [None]
@@ -29,7 +28,7 @@ class HistoryViewer(BuilderAware):
         self.view.realize()
 
         self.activator = Activator()
-        self.activator.bind_accel('escape', 'Close window', 'Escape', self.on_window_delete_event)
+        self.activator.bind_accel('window', 'escape', '_Close', 'Escape', self.on_window_delete_event)
         self.activator.attach(self.window)
 
     def on_window_delete_event(self, *args):

@@ -2,7 +2,6 @@ import os
 import gtk
 import gio
 import glib
-import hashlib
 
 from uxie.search import InteractiveSearch
 from uxie.tree import SelectionListStore
@@ -26,39 +25,28 @@ def init(activator):
         lambda f: f if not f.show_hidden else None)
 
     activator.bind_accel('filelist-show-hidden', 'hide-hidden',
-        'Do not show hidden files', '<ctrl>h', FileList.show_hidden)
-
+        '_View/_Hide hidden', '<ctrl>h', FileList.show_hidden)
     activator.bind_accel('filelist-hide-hidden', 'show-hidden',
-        'Show hidden files', '<ctrl>h', FileList.show_hidden)
+        '_View/_Show hidden', '<ctrl>h', FileList.show_hidden)
 
     with activator.on('filelist') as ctx:
-        ctx.bind('paste', 'Paste', FileList.paste)
-
-        ctx.bind_accel('focus-location', 'Activate location bar',
-            '<ctrl>l', FileList.activate_location)
-
-        ctx.bind_accel('create-directory', 'Create directory',
-            '<ctrl><shift>n', FileList.mkdir)
+        ctx.bind('paste', '_Paste', FileList.paste)
+        ctx.bind_accel('activate-location', '_Goto/_Location', '<ctrl>l', FileList.activate_location)
+        ctx.bind_accel('make-directory', '_Utils/_Make directory', '<ctrl><shift>n', FileList.mkdir)
 
     with activator.on('filelist-active') as ctx:
-        ctx.bind_accel('goto-parent', 'Navigate to parent directory',
-            '<alt>Up', FileList.navigate_parent)
-
-        ctx.bind_accel('back', 'Navigate back in history',
-            '<alt>Left', FileList.navigate_back)
-        ctx.map('back', 'BackSpace')
-
-        ctx.bind_accel('forward', 'Navigate forward in history',
-            '<alt>Right', FileList.navigate_forward)
+        ctx.bind_accel('goto-parent', '_Goto/_Parent', '<alt>Up', FileList.navigate_parent)
+        ctx.bind_accel('goto-back', '_Goto/_Back', '<alt>Left', FileList.navigate_back)
+        ctx.map('goto-back', 'BackSpace')
+        ctx.bind_accel('goto-forward', '_Goto/_Forward', '<alt>Right', FileList.navigate_forward)
 
     with activator.on('filelist-with-selected-files') as ctx:
-        ctx.bind('copy', 'Copy', FileList.copy)
-        ctx.bind('cut', 'Cut', FileList.cut)
-        ctx.bind('delete', 'Delete', FileList.delete)
-        ctx.bind_accel('delete-permanently', 'Force delete',
-            '<shift>Delete', FileList.force_delete, 10)
+        ctx.bind('copy', '_Copy', FileList.copy)
+        ctx.bind('cut', 'C_ut', FileList.cut)
+        ctx.bind('delete', '_Delete', FileList.delete)
+        ctx.bind_accel('force-delete', '_Delete _permanently', '<shift>Delete', FileList.force_delete, 10)
 
-        ctx.bind_accel('rename', 'Rename', 'F2', FileList.rename)
+        ctx.bind_accel('rename', '_Rename', 'F2', FileList.rename)
 
 
 class History(object):
