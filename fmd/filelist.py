@@ -15,6 +15,9 @@ def init(activator):
     activator.add_context('filelist-active', 'filelist',
         lambda f: f if f.view.has_focus() else None)
 
+    activator.add_context('filelist-with-clipboard', 'filelist-active',
+        lambda f: None if f.clipboard.is_empty() else f)
+
     activator.add_context('filelist-with-selected-files', 'filelist-active',
         lambda f: f if f.model.selection else None)
 
@@ -29,12 +32,11 @@ def init(activator):
     activator.bind_accel('filelist-hide-hidden', 'show-hidden',
         '_View/_Show hidden', '<ctrl>h', FileList.show_hidden)
 
-    with activator.on('filelist') as ctx:
-        ctx.bind('paste', '_Paste', FileList.paste)
-        ctx.bind_accel('activate-location', '_Goto/_Location', '<ctrl>l', FileList.activate_location)
-        ctx.bind_accel('make-directory', '_Utils/_Make directory', '<ctrl><shift>n', FileList.mkdir)
+    activator.bind('filelist-with-clipboard', 'paste', '_Paste', FileList.paste)
 
     with activator.on('filelist-active') as ctx:
+        ctx.bind_accel('activate-location', '_Goto/_Location', '<ctrl>l', FileList.activate_location)
+        ctx.bind_accel('make-directory', '_Utils/_Make directory', '<ctrl><shift>n', FileList.mkdir)
         ctx.bind_accel('goto-parent', '_Goto/_Parent', '<alt>Up', FileList.navigate_parent)
         ctx.bind_accel('goto-back', '_Goto/_Back', '<alt>Left', FileList.navigate_back)
         ctx.map('goto-back', 'BackSpace')
