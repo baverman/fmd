@@ -43,8 +43,8 @@ def init(activator):
     with activator.on('filelist-with-selected-files') as ctx:
         ctx.bind('copy', '_Copy', FileList.copy)
         ctx.bind('cut', 'C_ut', FileList.cut)
-        ctx.bind('delete', '_Delete', FileList.delete)
-        ctx.bind_accel('force-delete', '_Delete _permanently', '<shift>Delete', FileList.force_delete, 10)
+        ctx.bind('delete', '_Trash', FileList.delete)
+        ctx.bind_accel('force-delete', '_Delete', '<shift>Delete', FileList.force_delete, 10)
 
         ctx.bind_accel('rename', '_Rename', 'F2', FileList.rename)
 
