@@ -32,6 +32,8 @@ def init(activator):
     activator.bind_accel('filelist-hide-hidden', 'show-hidden',
         '_View/_Show hidden', '<ctrl>h', FileList.show_hidden)
 
+    activator.bind('filelist-active', '!run-menu', '_Run/stub', FileList.run_menu)
+
     with activator.on('filelist-active') as ctx:
         ctx.bind_accel('activate-location', '_Goto/_Location', '<ctrl>l', FileList.activate_location)
         ctx.bind_accel('make-directory', '_Utils/_Make directory', '<ctrl><shift>n', FileList.mkdir)
@@ -512,3 +514,18 @@ class FileList(object):
                 self.feedback.show('Directory created', 'done')
 
         dialog.destroy()
+
+    def run_menu(self):
+        fi = self.model[self.view.get_cursor()][2]
+        cfile = self.current_folder.get_child(fi.get_name())
+        current_folder = self.current_folder.get_path()
+
+        def make_launcher(app_info):
+            def inner():
+                os.chdir(current_folder)
+                app_info.launch([cfile])
+
+            return inner
+
+        for info in gio.app_info_get_all_for_type(fi.get_content_type()):
+            yield info.get_name(), make_launcher(info)
