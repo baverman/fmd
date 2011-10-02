@@ -29,7 +29,7 @@ class App(object):
         self.activator.map(None, 'paste', '<shift>Insert')
         self.activator.map(None, 'delete', 'Delete')
 
-        self.activator.bind_accel('window', 'quit', '_Quit', '<ctrl>q', self.quit)
+        self.activator.bind_accel('window', 'quit', '$_Quit', '<ctrl>q', self.quit)
         self.activator.bind_accel('window', 'close-window',
             '_Window/_Close', '<ctrl>w', self.quit)
 

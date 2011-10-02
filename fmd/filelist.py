@@ -32,8 +32,6 @@ def init(activator):
     activator.bind_accel('filelist-hide-hidden', 'show-hidden',
         '_View/_Show hidden', '<ctrl>h', FileList.show_hidden)
 
-    activator.bind('filelist-with-clipboard', 'paste', '_Paste', FileList.paste)
-
     with activator.on('filelist-active') as ctx:
         ctx.bind_accel('activate-location', '_Goto/_Location', '<ctrl>l', FileList.activate_location)
         ctx.bind_accel('make-directory', '_Utils/_Make directory', '<ctrl><shift>n', FileList.mkdir)
@@ -45,6 +43,7 @@ def init(activator):
     with activator.on('filelist-with-selected-files') as ctx:
         ctx.bind('copy', '_Copy', FileList.copy)
         ctx.bind('cut', 'C_ut', FileList.cut)
+        activator.bind('filelist-with-clipboard', 'paste', '_Paste', FileList.paste)
         ctx.bind('delete', '_Trash', FileList.delete)
         ctx.bind_accel('force-delete', '_Delete', '<shift>Delete', FileList.force_delete, 10)
 
