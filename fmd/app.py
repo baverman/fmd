@@ -13,7 +13,7 @@ class App(object):
         self.wg = gtk.WindowGroup()
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_default_size(700, 415)
-        self.window.connect('destroy', self.quit)
+        self.window.connect('delete-event', self.quit)
         self.wg.add_window(self.window)
 
         self.clipboard = clipboard.Clipboard()
