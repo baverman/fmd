@@ -13,7 +13,7 @@ from .iconview import FmdIconView
 
 def init(activator):
     activator.add_context('filelist-active', 'filelist',
-        lambda f: f if f.view.has_focus() else None)
+        lambda f: f if f.view.is_focus() else None)
 
     activator.add_context('filelist-with-clipboard', 'filelist-active',
         lambda f: None if f.clipboard.is_empty() else f)
