@@ -32,7 +32,9 @@ def init(activator):
     activator.bind_accel('filelist-hide-hidden', 'show-hidden',
         '_View/_Show hidden', '<ctrl>h', FileList.show_hidden)
 
-    activator.bind('filelist-active', '!run-menu', '_Run/stub', FileList.run_menu)
+    activator.bind_menu('filelist-active', 'run-menu', '_Run',
+        FileList.generate_run_menu, FileList.resolve_run_menu_entry)
+    activator.map_menu('Run', '<Alt>X')
 
     with activator.on('filelist-active') as ctx:
         ctx.bind_accel('activate-location', '_Goto/_Location', '<ctrl>l', FileList.activate_location)
@@ -515,7 +517,7 @@ class FileList(object):
 
         dialog.destroy()
 
-    def run_menu(self):
+    def generate_run_menu(self):
         fi = self.model[self.view.get_cursor()][2]
         cfile = self.current_folder.get_child(fi.get_name())
         current_folder = self.current_folder.get_path()
@@ -528,4 +530,7 @@ class FileList(object):
             return inner
 
         for info in gio.app_info_get_all_for_type(fi.get_content_type()):
-            yield info.get_name(), make_launcher(info)
+            yield info.get_name(), info.get_id(), make_launcher(info)
+
+    def resolve_run_menu_entry(self, name):
+        pass
