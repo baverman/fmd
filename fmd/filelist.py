@@ -517,20 +517,26 @@ class FileList(object):
 
         dialog.destroy()
 
+    def launch_file(self, app_info, cfile, current_folder):
+        os.chdir(current_folder)
+        app_info.launch([cfile])
+
     def generate_run_menu(self):
         fi = self.model[self.view.get_cursor()][2]
         cfile = self.current_folder.get_child(fi.get_name())
         current_folder = self.current_folder.get_path()
 
-        def make_launcher(app_info):
-            def inner():
-                os.chdir(current_folder)
-                app_info.launch([cfile])
-
-            return inner
-
         for info in gio.app_info_get_all_for_type(fi.get_content_type()):
-            yield info.get_name(), info.get_id(), make_launcher(info)
+            yield info.get_name(), info.get_id(), (self,
+                FileList.launch_file, (info, cfile, current_folder))
 
     def resolve_run_menu_entry(self, name):
-        pass
+        fi = self.model[self.view.get_cursor()][2]
+        cfile = self.current_folder.get_child(fi.get_name())
+        current_folder = self.current_folder.get_path()
+
+        for info in gio.app_info_get_all_for_type(fi.get_content_type()):
+            if info.get_id() == name:
+                return FileList.launch_file, (info, cfile, current_folder), info.get_name()
+
+        return None, None
