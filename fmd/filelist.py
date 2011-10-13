@@ -527,8 +527,7 @@ class FileList(object):
         current_folder = self.current_folder.get_path()
 
         for info in gio.app_info_get_all_for_type(fi.get_content_type()):
-            yield info.get_name(), info.get_id(), (self,
-                FileList.launch_file, (info, cfile, current_folder))
+            yield info.get_name(), info.get_id(), (self.launch_file, (info, cfile, current_folder))
 
     def resolve_run_menu_entry(self, name):
         fi = self.model[self.view.get_cursor()][2]
@@ -537,6 +536,6 @@ class FileList(object):
 
         for info in gio.app_info_get_all_for_type(fi.get_content_type()):
             if info.get_id() == name:
-                return FileList.launch_file, (info, cfile, current_folder), info.get_name()
+                return self.launch_file, (info, cfile, current_folder), info.get_name()
 
         return None, None
