@@ -1,6 +1,6 @@
 import gtk
 
-from uxie.actions import Activator, map_generic
+from uxie.actions import KeyMap
 from uxie.floating import Manager as FeedbackManager
 from uxie.plugins import Manager as PluginManager
 
@@ -8,14 +8,15 @@ import filelist
 import clipboard
 import fsutils
 
-map_generic('root-menu', 'F1')
-map_generic('copy', '<ctrl>c')
-map_generic('copy', '<ctrl>Insert')
-map_generic('cut', '<ctrl>x')
-map_generic('cut', '<shift>Delete')
-map_generic('paste', '<ctrl>v')
-map_generic('paste', '<shift>Insert')
-map_generic('delete', 'Delete')
+keymap = KeyMap()
+keymap.map_generic('root-menu', 'F1')
+keymap.map_generic('copy', '<ctrl>c')
+keymap.map_generic('copy', '<ctrl>Insert')
+keymap.map_generic('cut', '<ctrl>x')
+keymap.map_generic('cut', '<shift>Delete')
+keymap.map_generic('paste', '<ctrl>v')
+keymap.map_generic('paste', '<shift>Insert')
+keymap.map_generic('delete', 'Delete')
 
 class App(object):
     def __init__(self):
@@ -28,7 +29,7 @@ class App(object):
         self.clipboard = clipboard.Clipboard()
         self.window.feedback = self.feedback = FeedbackManager()
 
-        self.activator = Activator()
+        self.activator = keymap.get_activator(self.window)
         self.activator.add_context('filelist', None, lambda: self.filelist)
 
         self.activator.bind_accel('window', 'quit', '$_Quit', '<ctrl>q', self.quit)
@@ -39,7 +40,6 @@ class App(object):
 
         filelist.init(self.activator)
         self.init_plugins(self.pm)
-        self.activator.attach(self.window)
 
         self.executor = fsutils.Executor()
 
