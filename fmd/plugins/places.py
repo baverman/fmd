@@ -19,9 +19,9 @@ class Places(BuilderAware):
     def __init__(self):
         BuilderAware.__init__(self, join_to_file_dir(__file__, 'places.glade'))
 
-        self.activator = Activator()
+        from fmd.app import keymap
+        self.activator = keymap.get_activator(self.window)
         self.activator.bind_accel('window', 'escape', '_Close', 'Escape', self.on_window_delete_event)
-        self.activator.attach(self.window)
 
         self.view.realize()
 

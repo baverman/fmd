@@ -1,5 +1,6 @@
 import gtk
 
+from uxie.utils import join_to_settings_dir
 from uxie.actions import KeyMap
 from uxie.floating import Manager as FeedbackManager
 from uxie.plugins import Manager as PluginManager
@@ -8,7 +9,7 @@ import filelist
 import clipboard
 import fsutils
 
-keymap = KeyMap()
+keymap = KeyMap(join_to_settings_dir('fmd', 'keys.conf'))
 keymap.map_generic('root-menu', 'F1')
 keymap.map_generic('copy', '<ctrl>c')
 keymap.map_generic('copy', '<ctrl>Insert')
@@ -29,7 +30,7 @@ class App(object):
         self.clipboard = clipboard.Clipboard()
         self.window.feedback = self.feedback = FeedbackManager()
 
-        self.activator = keymap.get_activator(self.window)
+        self.activator = keymap.get_activator(self.window, 'main_window')
         self.activator.add_context('filelist', None, lambda: self.filelist)
 
         self.activator.bind_accel('window', 'quit', '$_Quit', '<ctrl>q', self.quit)
