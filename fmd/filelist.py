@@ -37,21 +37,21 @@ def init(activator):
     activator.map_menu('Run', '<Alt>X')
 
     with activator.on('filelist-active') as ctx:
-        ctx.bind_accel('activate-location', '_Goto/_Location', '<ctrl>l', FileList.activate_location)
-        ctx.bind_accel('make-directory', '_Utils/_Make directory', '<ctrl><shift>n', FileList.mkdir)
-        ctx.bind_accel('goto-parent', '_Goto/_Parent', '<alt>Up', FileList.navigate_parent)
-        ctx.bind_accel('goto-back', '_Goto/_Back', '<alt>Left', FileList.navigate_back)
+        ctx.bind_accel('activate-location', 'Goto/_Location#10', '<ctrl>l', FileList.activate_location)
+        ctx.bind_accel('make-directory', 'Utils/_Make directory#10', '<ctrl><shift>n', FileList.mkdir)
+        ctx.bind_accel('goto-parent', 'Goto/_Parent', '<alt>Up', FileList.navigate_parent)
+        ctx.bind_accel('goto-back', 'Goto/_Back', '<alt>Left', FileList.navigate_back)
         ctx.map('goto-back', 'BackSpace')
-        ctx.bind_accel('goto-forward', '_Goto/_Forward', '<alt>Right', FileList.navigate_forward)
+        ctx.bind_accel('goto-forward', 'Goto/_Forward', '<alt>Right', FileList.navigate_forward)
 
     with activator.on('filelist-with-selected-files') as ctx:
-        ctx.bind('copy', '_Copy', FileList.copy)
-        ctx.bind('cut', 'C_ut', FileList.cut)
-        activator.bind('filelist-with-clipboard', 'paste', '_Paste', FileList.paste)
-        ctx.bind('delete', '_Trash', FileList.delete)
-        ctx.bind_accel('force-delete', '_Delete', '<shift>Delete', FileList.force_delete, 10)
+        ctx.bind('copy', 'File/_Copy#50', FileList.copy)
+        ctx.bind('cut', 'File/C_ut', FileList.cut)
+        activator.bind('filelist-with-clipboard', 'paste', 'File/_Paste', FileList.paste)
+        ctx.bind('delete', 'File/_Trash', FileList.delete)
+        ctx.bind_accel('force-delete', 'File/_Delete', '<shift>Delete', FileList.force_delete, 10)
 
-        ctx.bind_accel('rename', '_Rename', 'F2', FileList.rename)
+        ctx.bind_accel('rename', 'File/_Rename', 'F2', FileList.rename)
 
 
 class History(object):

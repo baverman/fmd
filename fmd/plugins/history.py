@@ -5,7 +5,7 @@ from uxie.actions import Activator
 from uxie.utils import join_to_file_dir
 
 def init(injector):
-    injector.bind_accel('filelist', 'show-history', '_Window/_History', '<alt>e', show_history)
+    injector.bind_accel('filelist', 'show-history', 'Window/_History#20', '<alt>e', show_history)
 
 
 history_browser = [None]

@@ -33,9 +33,16 @@ class App(object):
         self.activator = keymap.get_activator(self.window, 'main_window')
         self.activator.add_context('filelist', None, lambda: self.filelist)
 
-        self.activator.bind_accel('window', 'quit', '$_Quit', '<ctrl>q', self.quit)
+        self.activator.add_menu_entry('_File#1/')
+        self.activator.add_menu_entry('_View#10/')
+        self.activator.add_menu_entry('_Goto#20/')
+        self.activator.add_menu_entry('_Run#30/')
+        self.activator.add_menu_entry('_Utils#40/')
+        self.activator.add_menu_entry('_Window#50/')
+
+        self.activator.bind_accel('window', 'quit', 'File/_Quit#100', '<ctrl>q', self.quit)
         self.activator.bind_accel('window', 'close-window',
-            '_Window/_Close', '<ctrl>w', self.quit)
+            'Window/_Close#100', '<ctrl>w', self.quit)
 
         self.pm = PluginManager(self.activator)
 
