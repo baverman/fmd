@@ -2,12 +2,11 @@ import gio, os.path, glib
 
 from uxie.misc import BuilderAware
 from uxie.utils import join_to_file_dir
-from uxie.actions import Activator
 
 dialog = [None]
 
 def init(injector):
-    injector.bind_accel('filelist', 'show-places', 'Window/_Places#20', '<alt>p', show_places)
+    injector.bind('filelist', 'show-places', 'Window/_Places#20', show_places).to('<alt>p')
 
 def show_places(filelist):
     if not dialog[0]:
@@ -21,7 +20,7 @@ class Places(BuilderAware):
 
         from fmd.app import keymap
         self.activator = keymap.get_activator(self.window)
-        self.activator.bind_accel('window', 'escape', '_Close', 'Escape', self.on_window_delete_event)
+        self.activator.bind('any', 'escape', '_Close', self.on_window_delete_event).to('Escape')
 
         self.view.realize()
 

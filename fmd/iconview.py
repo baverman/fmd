@@ -7,12 +7,18 @@ from gtk import keysyms
 
 from uxie.utils import send_focus_change
 
+icon_sizes = None
+
 class DrawItem(object):
     __slots__ = ['ix', 'iy', 'iwidth', 'iheight',
         'tx', 'ty', 'twidth', 'theight', 'width', 'height', 'x', 'y']
 
     def __init__(self, view, icell, tcell):
-        self.ix, self.iy, self.iwidth, self.iheight = icell.get_size(view)
+        global icon_sizes
+        if not icon_sizes:
+            icons_sizes = icell.get_size(view)
+
+        self.ix, self.iy, self.iwidth, self.iheight = icons_sizes
         self.tx, self.ty, self.twidth, self.theight = tcell.get_size(view)
 
         self.tx += self.ix + self.iwidth

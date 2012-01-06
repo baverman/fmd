@@ -21,37 +21,25 @@ def init(activator):
     activator.add_context('filelist-with-selected-files', 'filelist-active',
         lambda f: f if f.model.selection else None)
 
-    activator.add_context('filelist-show-hidden', 'filelist',
-        lambda f: f if f.show_hidden else None)
-
-    activator.add_context('filelist-hide-hidden', 'filelist',
-        lambda f: f if not f.show_hidden else None)
-
-    activator.bind_accel('filelist-show-hidden', 'hide-hidden',
-        '_View/_Hide hidden', '<ctrl>h', FileList.show_hidden)
-    activator.bind_accel('filelist-hide-hidden', 'show-hidden',
-        '_View/_Show hidden', '<ctrl>h', FileList.show_hidden)
-
-    activator.bind_menu('filelist-active', 'run-menu', '_Run',
+    activator.bind_dynamic('filelist-active', 'run-menu', 'Run/run-menu',
         FileList.generate_run_menu, FileList.resolve_run_menu_entry)
-    activator.map_menu('Run', '<Alt>X')
 
     with activator.on('filelist-active') as ctx:
-        ctx.bind_accel('activate-location', 'Goto/_Location#10', '<ctrl>l', FileList.activate_location)
-        ctx.bind_accel('make-directory', 'Utils/_Make directory#10', '<ctrl><shift>n', FileList.mkdir)
-        ctx.bind_accel('goto-parent', 'Goto/_Parent', '<alt>Up', FileList.navigate_parent)
-        ctx.bind_accel('goto-back', 'Goto/_Back', '<alt>Left', FileList.navigate_back)
-        ctx.map('goto-back', 'BackSpace')
-        ctx.bind_accel('goto-forward', 'Goto/_Forward', '<alt>Right', FileList.navigate_forward)
+        ctx.bind_check('show-hidden', '_View/_Show hidden', FileList.show_hidden).to('<ctrl>h')
+        ctx.bind('activate-location', 'Goto/_Location#10', FileList.activate_location).to('<ctrl>l')
+        ctx.bind('make-directory', 'Utils/_Make directory#10', FileList.mkdir).to('<ctrl><shift>n')
+        ctx.bind('goto-parent', 'Goto/_Parent', FileList.navigate_parent).to('<alt>Up')
+        ctx.bind('goto-back', 'Goto/_Back', FileList.navigate_back).to('<alt>Left').to('BackSpace')
+        ctx.bind('goto-forward', 'Goto/_Forward', FileList.navigate_forward).to('<alt>Right')
 
     with activator.on('filelist-with-selected-files') as ctx:
         ctx.bind('copy', 'File/_Copy#50', FileList.copy)
         ctx.bind('cut', 'File/C_ut', FileList.cut)
         activator.bind('filelist-with-clipboard', 'paste', 'File/_Paste', FileList.paste)
         ctx.bind('delete', 'File/_Trash', FileList.delete)
-        ctx.bind_accel('force-delete', 'File/_Delete', '<shift>Delete', FileList.force_delete, 10)
+        ctx.bind('force-delete', 'File/_Delete', FileList.force_delete).to('<shift>Delete', 10)
 
-        ctx.bind_accel('rename', 'File/_Rename', 'F2', FileList.rename)
+        ctx.bind('rename', 'File/_Rename', FileList.rename).to('F2')
 
 
 class History(object):
@@ -370,9 +358,13 @@ class FileList(object):
     def activate_location(self):
         self.uri_entry.grab_focus()
 
-    def show_hidden(self):
-        self.show_hidden = not self.show_hidden
-        self.fill()
+    def show_hidden(self, is_set):
+        if is_set:
+            self.show_hidden = not self.show_hidden
+            self.fill()
+            self.view.refresh()
+        else:
+            return self.show_hidden
 
     def get_cursor_for_name(self, name):
         for row in self.model:
