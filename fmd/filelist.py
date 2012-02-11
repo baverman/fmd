@@ -300,13 +300,18 @@ class FileList(object):
         else:
             print ft, cfile.get_uri()
 
-    def process_archive(self, fi):
-        ct = fi.get_content_type()
+    def process_archive(self, cfile, fi):
+        from subprocess import Popen, PIPE
+
+        ct = Popen(["/usr/bin/env", "file", "-b", "--mime-type", cfile.get_path()],
+            stdout=PIPE).communicate()[0].strip()
 
         if ct == 'application/x-rar':
             cmd = ['unrar', 'x', '-y']
         elif ct == 'application/zip':
             cmd = ['unzip', '-o']
+        elif ct == 'application/x-7z-compressed':
+            cmd = ['7z', 'x', '-y']
         else:
             print ct
             return False
@@ -330,7 +335,7 @@ class FileList(object):
         cfile = self.current_folder.get_child(fi.get_name())
         ft = fi.get_file_type()
         if ft == gio.FILE_TYPE_REGULAR:
-            if not self.process_archive(fi):
+            if not self.process_archive(cfile, fi):
                 app_info = gio.app_info_get_default_for_type(fi.get_content_type(), False)
                 if app_info:
                     os.chdir(self.current_folder.get_path())
