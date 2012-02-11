@@ -63,6 +63,7 @@ class FmdIconView(gtk.EventBox):
         self.text_renderer = None
         self.cell_attrs = {}
         self.item_cache = {}
+        self.prev_allocation = None
         self.columns = []
         self.column_first_item = {}
         self.cursor = None
@@ -204,7 +205,10 @@ class FmdIconView(gtk.EventBox):
         self.allocation = allocation
         if self.flags() & gtk.REALIZED:
             self.window.move_resize(*allocation)
-            self.update_item_cache()
+
+            if allocation != self.prev_allocation:
+                self.prev_allocation = allocation
+                self.update_item_cache()
 
     def do_set_scroll_adjustments(self, h_adjustment, v_adjustment):
         if h_adjustment:
