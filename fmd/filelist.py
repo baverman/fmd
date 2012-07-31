@@ -230,6 +230,10 @@ class FileList(object):
         return fi
 
     def add_file(self, file):
+        for r in self.model:
+            if r[2].get_name() == file.get_basename():
+                return
+
         fi = self.get_info_for_file_which_will_change_model(file)
         self.model.append((self.get_pixbuf(fi), fi.get_display_name(), fi, True))
         self.view.refresh()
